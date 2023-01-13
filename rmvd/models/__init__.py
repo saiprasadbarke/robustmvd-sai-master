@@ -5,6 +5,7 @@ from .wrappers.midas import midas_big_v2_1_wrapped
 from .wrappers.vis_mvsnet import vis_mvsnet_wrapped
 from .wrappers.cvp_mvsnet import cvp_mvsnet_wrapped
 from .wrappers.patchmatchnet import patchmatchnet_wrapped
+from .wrappers.gmdepth import gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped, gmdepth_scale1_resumeflowthings_demon_wrapped
 
 from .factory import create_model, prepare_custom_model
 from .registry import register_model, list_models, has_model

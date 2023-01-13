@@ -169,6 +169,35 @@ of this `README`).
 
 It is not necessary to install additional dependencies.
 
+### `gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped`
+This is the "??" model presented in the publication 
+"Unifying Flow, Stereo and Depth Estimation" by Xu et al. 
+The model is wrapped around the original implementation from <https://github.com/autonomousvision/unimatch>, where it is 
+indicated as `GMDepth-scale1-regrefine1-resumeflowthings-demon` 
+(see <https://github.com/autonomousvision/unimatch/blob/master/MODEL_ZOO.md>).
+
+#### Setup:
+From the directory of this `README` file, execute the script `scripts/setup_gmdepth.sh` and specify the local
+directory to clone the original repository:
+```bash
+./scripts/setup_gmdepth.sh /path/to/gmdepth
+```
+
+Then specify the local directory `/path/to/gmdepth` in the `wrappers/paths.toml` file (relative to the directory of  
+this `README`).
+
+It is not necessary to install additional dependencies.
+
+### `gmdepth_scale1_resumeflowthings_demon_wrapped`
+This is the "??" model presented in the publication 
+"Unifying Flow, Stereo and Depth Estimation" by Xu et al. 
+The model is wrapped around the original implementation from <https://github.com/autonomousvision/unimatch>, where it is 
+indicated as `GMDepth-scale1-regrefine1-resumeflowthings-demon` 
+(see <https://github.com/autonomousvision/unimatch/blob/master/MODEL_ZOO.md>).
+
+#### Setup:
+Same as for the `gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped` model.
+
 ---
 
 ## Usage
