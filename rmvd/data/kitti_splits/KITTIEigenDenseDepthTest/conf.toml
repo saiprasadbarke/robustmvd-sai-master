@@ -1,0 +1,34 @@
+[paths]
+
+raw_dir = "/home/schroepp/datasets/orig/kitti/data/raw_data"
+odometry_dir = "/home/schroepp/datasets/orig/kitti/data/odometry/dataset"
+stereo2015_dir = "/home/schroepp/datasets/orig/kitti/data/stereo_flow_sceneflow_2015"
+depthpred_dir = "/home/schroepp/datasets/orig/kitti/data/depth_completion_prediction"
+out_dir = "/misc/lmbssd/schroepp/datasets/converted/h5/KITTI/odomtrain.densedepth.woeigentest.train.m2p2"
+
+[proc]
+proc_data = false
+target_width = 1242
+target_height = 375
+random_crop = false
+
+[data]
+split_file = '/tmp/odomtrain.densedepth.woeigentest.train.m2p2.txt'
+
+raw_cam0 = false
+raw_cam1 = false
+raw_cam2 = true
+raw_cam3 = false
+raw_velo = false
+raw_pose = true
+raw_K_cam0 = false
+raw_K_cam1 = false
+raw_K_cam2 = true
+raw_K_cam3 = false
+odom_pose = false
+depth_cam2gt = true  # prefered over velo depth when available
+depth_cam3gt = false  # prefered over velo depth when available
+depth_cam2velo = true
+depth_cam3velo = false
+
+pose_format = 'rect2_to_ref_transform'
