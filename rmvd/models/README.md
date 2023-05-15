@@ -187,7 +187,8 @@ model = create_model(model_name, pretrained=True, weights=None, train=False, num
 #### Weights
 
 If `pretrained` is set to True, the default pretrained weights for the model will be used. 
-Alternatively, custom weights can be loaded by providing the path to the weights with the `weights` parameter.
+Alternatively, custom weights can be loaded by providing the path to the weights with the `weights` parameter. 
+The `weights` parameter overrides the `pretrained` parameter.
 
 #### Train mode
 

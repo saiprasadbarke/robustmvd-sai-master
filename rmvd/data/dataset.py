@@ -37,7 +37,6 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         if self.verbose:
             print(f"Initializing dataset {self.name} from {self.root}")
 
-        self._seed_initialized = False
         self.input_resize = ResizeInputs(size=input_size) if input_size is not None else None
         self.target_resize = ResizeTargets(size=target_size) if target_size is not None else None
         self.augmentations = []
