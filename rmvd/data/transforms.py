@@ -279,8 +279,11 @@ class NormalizeImagesByShiftAndScale(object):
         self.__scale = scale
 
     def __call__(self, sample):
-        images = sample["images"]  # 3, H, W, float32, range [0, 255]
-        images = [(image - self.__shift) / self.__scale for image in images]  # 3, H, W, float32
+        images = sample["images"]  # 3, H, W, float32
+        images = [np.transpose(image, [1, 2, 0]) for image in images]  # H, W, 3, float32
+        images = [(image - self.__shift) / self.__scale for image in images]  # H, W, 3 float32
+        images = [np.transpose(image, [2, 0, 1]) for image in images]  # 3, H, W
+        images = [image.astype(np.float32) for image in images]  # 3, H, W, float32
         sample["images"] = images
         return sample
     

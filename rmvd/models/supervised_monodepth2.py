@@ -150,7 +150,7 @@ class SupervisedMonodepth2(nn.Module):
         device = get_torch_model_device(self)
 
         image = select_by_index(images, keyview_idx)
-        resized = UpscaleToNextMultipleOf(32)({'images': [image]})
+        resized = UpscaleToNextMultipleOf(8)({'images': [image]})
         image = resized['images'][0]
 
         image = image / 255
@@ -166,7 +166,7 @@ class SupervisedMonodepth2(nn.Module):
         dec = self.decoder(features)
         
         aux = {
-            'invdepths_all': [dec[key] for key in sorted(dec.keys(), reverse=True)]  # sorted from lowes to highest resolution
+            'invdepths_all': [dec[key] for key in sorted(dec.keys(), reverse=True)]  # sorted from lowest to highest resolution
         }
 
         pred = {

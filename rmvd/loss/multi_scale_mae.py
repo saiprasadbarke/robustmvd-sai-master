@@ -19,7 +19,7 @@ class MultiScaleMAE(nn.Module):
         self.weight_decay = weight_decay
         self.gt_interpolation = gt_interpolation
 
-        self.loss_weights = [1 / 16, 1 / 16, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1]
+        self.loss_weights = [1 / 8, 1 / 4, 1 / 2, 1]
         self.loss_weights = [100 * 1050 * weight for weight in self.loss_weights]
 
         self.modality = modality
