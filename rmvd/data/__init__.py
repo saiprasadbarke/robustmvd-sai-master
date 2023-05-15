@@ -13,5 +13,5 @@ from .staticthings3d import StaticThings3DSeq4Train
 from .blendedmvs import BlendedMVSSeq4TrainSmall
 
 # import all augmentations; this triggers the registration of the augmentations in the registry
-from .augmentations import robust_mvd_augmentations_staticthings3d, robust_mvd_augmentations_blendedmvs
+from .augmentations import robust_mvd_augmentations_staticthings3d, robust_mvd_augmentations_blendedmvs, supervised_monodepth2_augmentations
 from .batch_augmentations import robust_mvd_batch_augmentations

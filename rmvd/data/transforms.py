@@ -1,3 +1,5 @@
+import math
+
 import torch
 import numpy as np
 from skimage.transform import resize
@@ -5,7 +7,7 @@ from PIL import Image
 import torchvision.transforms
 import cv2
 
-from rmvd.utils import trans_from_transform, rot_from_transform, transform_from_rot_trans, compute_depth_range, to_numpy
+from rmvd.utils import trans_from_transform, rot_from_transform, transform_from_rot_trans, compute_depth_range
 
 
 class Bernoulli:
@@ -67,6 +69,30 @@ class ResizeInputs:
             sample["intrinsics"] = [intrinsic * scale_arr for intrinsic in sample["intrinsics"]]
             
         return sample
+
+
+class UpscaleToNextMultipleOf:
+    """Upscale sample inputs such that height and width are a multiple of a given factor.
+    """
+    def __init__(
+            self,
+            factor,
+            interpolation_order=1,
+    ):
+        self.__factor = factor
+        self.__interpolation_order = interpolation_order
+
+    def __call__(self, sample):
+        image = sample["images"][0]
+        orig_ht, orig_wd = image.shape[-2:]
+        
+        ht = int(math.ceil(orig_ht / self.__factor) * self.__factor)
+        wd = int(math.ceil(orig_wd / self.__factor) * self.__factor)
+        
+        if ht == orig_ht and wd == orig_wd:
+            return sample
+        else:
+            return ResizeInputs(size=(ht, wd), interpolation_order=self.__interpolation_order)(sample)
     
 
 class ResizeTargets:
@@ -242,6 +268,19 @@ class NormalizeImagesToMinMax(object):
         images = sample["images"]  # 3, H, W, float32, range [0, 255]
         images = [image / 255.0 for image in images]  # 3, H, W, float32, range [0, 1]
         images = [image * (self.__max_val - self.__min_val) + self.__min_val for image in images]  # 3, H, W, float32, range [min_val, max_val]
+        sample["images"] = images
+        return sample
+
+
+class NormalizeImagesByShiftAndScale(object):
+    """Normalize images by shift and scale."""
+    def __init__(self, shift, scale):
+        self.__shift = shift
+        self.__scale = scale
+
+    def __call__(self, sample):
+        images = sample["images"]  # 3, H, W, float32, range [0, 255]
+        images = [(image - self.__shift) / self.__scale for image in images]  # 3, H, W, float32
         sample["images"] = images
         return sample
     

@@ -1,4 +1,6 @@
 from .robust_mvd import robust_mvd, robust_mvd_5M
+from .supervised_monodepth2 import supervised_monodepth2
+
 from .wrappers.monodepth2 import monodepth2_mono_stereo_1024x320_wrapped, monodepth2_mono_stereo_640x192_wrapped
 from .wrappers.mvsnet_pl import mvsnet_pl_wrapped
 from .wrappers.midas import midas_big_v2_1_wrapped
