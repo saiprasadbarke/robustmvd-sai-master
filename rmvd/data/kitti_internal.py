@@ -73,3 +73,27 @@ class KITTIEigenDenseDepthTest(KITTIInitializer):
         keyview_idx = 0
 
         super().__init__(root=root, layouts=layouts, conf_path=conf_path, keyview_idx=keyview_idx, **kwargs)
+                
+                
+class KITTIEigenDenseDepthTrain(KITTIInitializer):
+    # to go to rmvd root dir and do:
+    # import rmvd.data.kitti_internal
+    # rmvd.data.kitti_internal.KITTIEigenDenseDepthTrain()
+
+    base_dataset = 'kitti'
+    split = 'eigen_dense_depth_train'
+    dataset_type = 'mvd'
+
+    def __init__(self, root=None, layouts=None, **kwargs):
+        root = root if root is not None else self._get_path("kitti", "root")
+
+        default_layouts = [
+            MVDSequentialDefaultLayout("default", num_views=1, keyview_idx=0),
+            AllImagesLayout("all_images", num_views=1),
+        ]
+        layouts = default_layouts + layouts if layouts is not None else default_layouts
+        
+        conf_path = osp.join(osp.dirname(osp.realpath(__file__)), "kitti_splits", "KITTIEigenDenseDepthTrain")
+        keyview_idx = 0
+
+        super().__init__(root=root, layouts=layouts, conf_path=conf_path, keyview_idx=keyview_idx, **kwargs)

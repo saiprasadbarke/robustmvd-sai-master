@@ -106,16 +106,16 @@ all_seqs_path = osp.join(osp.dirname(osp.realpath(__file__)), "all_seqs.txt")
 all_seqs = open(all_seqs_path).readlines()
 all_seqs = [x[:-1] for x in all_seqs]
 
-# Prepare Eigen Test Split:
+# Prepare Eigen Train Split:
 
-original_eigen_split_test_path = osp.join(osp.dirname(osp.realpath(__file__)), "col_N.txt")
-original_eigen_split_test_list = open(original_eigen_split_test_path).readlines()
-original_eigen_split_test_list = [desc_to_list(x[:-1]) for x in original_eigen_split_test_list]
-original_eigen_split_test = {}
-for i, views in enumerate(original_eigen_split_test_list):
-    original_eigen_split_test[all_seqs[i]] = views
+original_eigen_split_train_path = osp.join(osp.dirname(osp.realpath(__file__)), "col_M.txt")
+original_eigen_split_train_list = open(original_eigen_split_train_path).readlines()
+original_eigen_split_train_list = [desc_to_list(x[:-1]) for x in original_eigen_split_train_list]
+original_eigen_split_train = {}
+for i, views in enumerate(original_eigen_split_train_list):
+    original_eigen_split_train[all_seqs[i]] = views
 
-print_split(original_eigen_split_test, "Original Eigen test split", only_size=True)
+print_split(original_eigen_split_train, "Original Eigen train split", only_size=True)
 
 # Prepare Views where Densified Depth is available:
 
@@ -137,10 +137,10 @@ for i, views in enumerate(depth_from_single_view_benchmark_val_list):
     
 print_split(depth_from_single_view_benchmark_val, "Depth benchmark val", only_size=True)
 
-# Combine Eigen Test Split and Views where Densified Depth is available:
+# Combine Eigen Train Split and Views where Densified Depth is available:
 combined = {}
 for seq in all_seqs:
-    views = [x for x in original_eigen_split_test[seq] if (x in depth_from_single_view_benchmark_train[seq] or x in depth_from_single_view_benchmark_val[seq])]
+    views = [x for x in original_eigen_split_train[seq] if (x in depth_from_single_view_benchmark_train[seq] or x in depth_from_single_view_benchmark_val[seq])]
     # use sth like this to only use samples where frames before/after are available:
 #     views = [x for x in views if all([(x - y) in raw[seq] for y in range(1, 11)]) and all([(x + y) in raw[seq] for y in range(1, 11)])]
 #     views = [x for x in views if all([(x - y) in odom_benchmark_train[seq] for y in range(1, 11)]) and all([(x + y) in odom_benchmark_train[seq] for y in range(1, 11)])]
