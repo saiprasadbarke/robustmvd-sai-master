@@ -7,6 +7,7 @@ from .dataset import Dataset, Sample
 from .registry import register_dataset, register_default_dataset
 from .layouts import MVDSequentialDefaultLayout, AllImagesLayout
 from .kitti import KITTIDepth, KITTIImage, KITTISample
+from .kitti_utils.provider import KittiProvider
 
 
 class KITTIInitializer(Dataset):
@@ -20,7 +21,6 @@ class KITTIInitializer(Dataset):
         split_file = osp.join(conf_path, "split.txt")
         conf_path = osp.join(conf_path, "conf.toml")
 
-        from kitti_utils.provider import KittiProvider
         kitti = KittiProvider(paths_only=True)
         kitti.set_config(conf_path, split_file=split_file, kitti_root=self.root)
         
