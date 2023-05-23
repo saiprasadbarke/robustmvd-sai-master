@@ -7,30 +7,30 @@ import numpy as np
 from .registry import register_model
 from .helpers import build_model_with_cfg
 from .blocks.dispnet_context_encoder import DispnetContextEncoder
-from .blocks.dispnet_encoder import DispnetEncoder
+from .blocks.mvsnet_encoder import MVSNetEncoder
 from .blocks.planesweep_corr import PlanesweepCorrelation
-from .blocks.learned_fusion import LearnedFusion
-from .blocks.dispnet_costvolume_encoder import DispnetCostvolumeEncoder
-from .blocks.dispnet_decoder import DispnetDecoder
+from .blocks.variance_costvolume_fusion import VarianceCostvolumeFusion
+from .blocks.mvsnet_fused_costvolume_encoder import MVSNetFusedCostvolumeEncoder
+from .blocks.mvsnet_decoder import MVSNetDecoder
 
 from rmvd.utils import get_torch_model_device, to_numpy, to_torch, select_by_index, exclude_index
 from rmvd.data.transforms import ResizeInputs
 
 
-class RobustMVD(nn.Module):
-    def __init__(self):
+class MVSNet(nn.Module):
+    def __init__(self, num_sampling_points=128, sampling_type='linear_depth'):
         super().__init__()
 
-        self.encoder = DispnetEncoder()
-        self.context_encoder = DispnetContextEncoder()
-        self.corr_block = PlanesweepCorrelation(num_sampling_points=256, min_depth=0.4, max_depth=1000.)
-        self.fusion_block = LearnedFusion()
-        self.fusion_enc_block = DispnetCostvolumeEncoder()
-        self.decoder = DispnetDecoder()
+        base_channels = 8
+        self.encoder = MVSNetEncoder(base_channels=base_channels)
+        self.corr_block = PlanesweepCorrelation(num_sampling_points=num_sampling_points, sampling_type=sampling_type, normalize=False, warp_only=True)
+        self.fusion_block = VarianceCostvolumeFusion()
+        self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(in_channels=32, base_channels=8, batch_norm=True)
+        self.decoder = MVSNetDecoder(in_channels=64)
 
         self.init_weights()
 
-    def init_weights(self):
+    def init_weights(self):  # TODO
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d) or isinstance(m, nn.Conv3d) or isinstance(
                     m, nn.ConvTranspose3d):
@@ -44,7 +44,7 @@ class RobustMVD(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, keyview_idx, **_):
+    def forward(self, images, poses, intrinsics, depth_range, keyview_idx, **_):
 
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
@@ -53,29 +53,28 @@ class RobustMVD(nn.Module):
         intrinsics_source = exclude_index(intrinsics, keyview_idx)
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
+        
+        min_depth, max_depth = depth_range
 
         all_enc_key, enc_key = self.encoder(image_key)
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
 
-        ctx = self.context_encoder(enc_key)
+        corrs, masks, sampling_invdepths = self.corr_block(feat_key=enc_key, intrinsics_key=intrinsics_key, feat_sources=enc_sources,
+                                                           source_to_key_transforms=source_to_key_transforms,
+                                                           intrinsics_sources=intrinsics_source, min_depth=min_depth, max_depth=max_depth)
 
-        corrs, masks, _ = self.corr_block(feat_key=enc_key, intrinsics_key=intrinsics_key, feat_sources=enc_sources,
-                                          source_to_key_transforms=source_to_key_transforms,
-                                          intrinsics_sources=intrinsics_source)
+        fused_corr, _ = self.fusion_block(feat_key=enc_key, corrs=corrs, masks=masks)
 
-        fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
+        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
 
-        all_enc_fused, enc_fused = self.fusion_enc_block(corr=fused_corr, ctx=ctx)
-
-        dec = self.decoder(enc_fused=enc_fused, all_enc={**all_enc_key, **all_enc_fused})
+        dec = self.decoder(enc_fused=enc_fused, sampling_invdepths=sampling_invdepths, all_enc={**all_enc_key, **all_enc_fused})
 
         pred = {
-            'depth': 1 / (dec['invdepth'] + 1e-9),
-            'depth_uncertainty': torch.exp(dec['invdepth_log_b']) / (dec['invdepth'] + 1e-9)
+            'depth': dec['depth'],
+            'depth_uncertainty': dec['uncertainty'],
         }
+        
         aux = dec
-        aux['depth'] = pred['depth']
-        aux['depth_uncertainty'] = pred['depth_uncertainty']
 
         return pred, aux
 
@@ -113,17 +112,9 @@ class RobustMVD(nn.Module):
         return to_numpy(pred), to_numpy(aux)
 
 
-@register_model(trainable=False)
-def robust_mvd_5M(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
-    pretrained_weights = 'https://lmb.informatik.uni-freiburg.de/people/schroepp/weights/robustmvd.pt'
-    weights = pretrained_weights if (pretrained and weights is None) else None
-    model = build_model_with_cfg(model_cls=RobustMVD, weights=weights, train=train, num_gpus=num_gpus)
-    return model
-
-
 @register_model
-def robust_mvd(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
-    pretrained_weights = 'https://lmb.informatik.uni-freiburg.de/people/schroepp/weights/robustmvd_600k.pt'
-    weights = pretrained_weights if (pretrained and weights is None) else weights
-    model = build_model_with_cfg(model_cls=RobustMVD, weights=weights, train=train, num_gpus=num_gpus)
+def mvsnet_blendedmvs(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
+    assert pretrained is False, "Pretrained weights are not available for this model."
+    # weights = pretrained_weights if (pretrained and weights is None) else weights
+    model = build_model_with_cfg(model_cls=MVSNet, weights=weights, train=train, num_gpus=num_gpus, num_sampling_points=128)
     return model

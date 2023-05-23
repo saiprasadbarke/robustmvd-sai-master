@@ -195,6 +195,24 @@ def vis(arr, **kwargs):
             return vis_2d_array(arr, **kwargs)
     else:
         raise ValueError(f"Can not visualize an array of shape {shape}.")
+    
+    
+def check_vis(arr):
+
+    ndim = arr.ndim
+    shape = arr.shape
+
+    if ndim == 2:
+        return True
+    elif ndim == 3:
+            return True
+    elif ndim == 4:
+        if shape[1] == 3:
+            return True
+        elif shape[1] == 1:
+            return True
+    else:
+        return False
 
 
 def vis_2d_array(arr, full_batch=False, batch_labels=None, **kwargs):

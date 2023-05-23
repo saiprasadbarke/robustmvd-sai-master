@@ -244,6 +244,22 @@ class NormalizeImagesToMinMax(object):
         images = [image * (self.__max_val - self.__min_val) + self.__min_val for image in images]  # 3, H, W, float32, range [min_val, max_val]
         sample["images"] = images
         return sample
+
+
+class NormalizeImagesByShiftAndScale(object):
+    """Normalize images by shift and scale."""
+    def __init__(self, shift, scale):
+        self.__shift = shift
+        self.__scale = scale
+
+    def __call__(self, sample):
+        images = sample["images"]  # 3, H, W, float32
+        images = [np.transpose(image, [1, 2, 0]) for image in images]  # H, W, 3, float32
+        images = [(image - self.__shift) / self.__scale for image in images]  # H, W, 3 float32
+        images = [np.transpose(image, [2, 0, 1]) for image in images]  # 3, H, W
+        images = [image.astype(np.float32) for image in images]  # 3, H, W, float32
+        sample["images"] = images
+        return sample
     
 
 class Eraser:
@@ -310,7 +326,7 @@ class Scale3DFixed:
         return sample
 
 
-class MaskDepth:
+class MaskDepthByMinMax:
     def __init__(self, min_depth, max_depth):
         self.__min_depth = min_depth
         self.__max_depth = max_depth
@@ -328,6 +344,9 @@ class MaskDepth:
         sample["depth_range"] = depth_range
         
         return sample
+    
+
+# TODO: MaskDepthForMVSNet
 
 
 class NormalizeIntrinsics:
