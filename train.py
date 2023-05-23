@@ -105,9 +105,10 @@ if __name__ == '__main__':
     parser.add_argument('--output', help="Path to folder for output data.", required=True)
     parser.add_argument('--num_gpus', type=int, help="Number of GPUs. 0 means use CPU. Default: use 1 GPU.", default=1)
     parser.add_argument('--seed', type=int, help="Random seed. Default: 42.", default=42)
+    parser.add_argument('--num_workers', type=int, help="Number of workers for data loading. Default: 8.", default=8)
+    
     parser.add_argument('--batch_size', type=int, required=True, help="Batch size.")
     parser.add_argument('--max_iterations', type=int, required=True, help="Maximum number of iterations to train.")
-    parser.add_argument('--num_workers', type=int, help="Number of workers for data loading. Default: 8.", default=8)
     parser.add_argument('--training_type', help=f"Training setting. Options are: {', '.join(list_trainings())}", required=True)
 
     parser.add_argument('--model', help=f"Model for evaluation. Available models "

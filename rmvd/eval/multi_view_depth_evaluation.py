@@ -11,7 +11,7 @@ import skimage.transform
 import numpy as np
 import pandas as pd
 
-from rmvd.utils import numpy_collate, vis, select_by_index, get_full_class_name
+from rmvd.utils import numpy_collate, vis, select_by_index, get_full_class_name, writer
 from rmvd.data.layout import Layout, Visualization
 from .metrics import m_rel_ae, pointwise_rel_ae, thresh_inliers, sparsification
 from rmvd.data.updates import Update
@@ -85,13 +85,19 @@ class MultiViewDepthEvaluation:
 
         self.out_dir = out_dir
         if self.out_dir is not None:
-            self.quantitatives_dir = osp.join(self.out_dir, "quantitative")
+            self.quantitatives_dir = osp.join(self.out_dir)
             self.sample_results_dir = osp.join(self.quantitatives_dir, "per_sample")
             self.qualitatives_dir = osp.join(self.out_dir, "qualitative")
+            self.done_file = osp.join(self.out_dir, "DONE")
             os.makedirs(self.out_dir, exist_ok=True)
             os.makedirs(self.quantitatives_dir, exist_ok=True)
             os.makedirs(self.sample_results_dir, exist_ok=True)
             os.makedirs(self.qualitatives_dir, exist_ok=True)
+        else:
+            self.quantitatives_dir = None
+            self.sample_results_dir = None
+            self.qualitatives_dir = None
+            self.done_file = None
 
         self.inputs = list(set(inputs + ["images"])) if inputs is not None else ["images"]
         self.alignment = alignment
@@ -106,7 +112,8 @@ class MultiViewDepthEvaluation:
         self.dataset = None
         self.dataloader = None
         self.model = None
-        self.exp_name = None
+        self.eval_name = None
+        self.finished_iterations = None
         self.sample_indices = None
         self.qualitative_indices = None
         self.burn_in_samples = None
@@ -148,7 +155,8 @@ class MultiViewDepthEvaluation:
                  samples: Optional[Union[int, Sequence[int]]] = None,
                  qualitatives: Union[int, Sequence[int]] = 10,
                  burn_in_samples: int = 3,
-                 exp_name: Optional[str] = None,
+                 eval_name: Optional[str] = None,
+                 finished_iterations: Optional[int] = None,
                  **_):
         """Run depth evaluation for a dataset and model.
 
@@ -161,13 +169,18 @@ class MultiViewDepthEvaluation:
                 the indices of samples for which qualitatives should be logged. -1 logs qualitatives for all samples.
             burn_in_samples: Number of samples that will not be considered for runtime/memory measurements.
                 Defaults to 3.
-            exp_name: Name of the experiment. Optional.
+            eval_name: Name of the experiment. Optional.
+            finished_iterations: Number of iterations that the model has been trained for. Optional.
 
         Returns:
             Results of the evaluation.
         """
+        if self.done_file is not None and osp.exists(self.done_file):
+            print(f"Skipping evaluation {self.name} because it is already finished.")
+            return None
+        
         self._init_evaluation(dataset=dataset, model=model, samples=samples, qualitatives=qualitatives,
-                              burn_in_samples=burn_in_samples, exp_name=exp_name)
+                              burn_in_samples=burn_in_samples, eval_name=eval_name, finished_iterations=finished_iterations)
         results = self._evaluate()
         self._output_results()
         self._reset_evaluation()
@@ -179,10 +192,12 @@ class MultiViewDepthEvaluation:
                          samples=None,
                          qualitatives=10,
                          burn_in_samples=3,
-                         exp_name=None,):
+                         eval_name=None,
+                         finished_iterations=None,):
         self.dataset = dataset
         self.model = model
-        self.exp_name = exp_name
+        self.eval_name = eval_name
+        self.finished_iterations = finished_iterations
         self._init_sample_indices(samples=samples)
         self._init_qualitative_indices(qualitatives=qualitatives)
         self._init_results()
@@ -338,7 +353,8 @@ class MultiViewDepthEvaluation:
         self.dataset = None
         self.dataloader = None
         self.model = None
-        self.exp_name = None
+        self.eval_name = None
+        self.finished_iterations = None
         self.sample_indices = None
         self.qualitative_indices = None
         self.burn_in_samples = None
@@ -583,11 +599,21 @@ class MultiViewDepthEvaluation:
         num_source_view_results_per_sample = self.results.drop('best', axis=1, level=0)
         num_source_view_results = num_source_view_results_per_sample.mean()
 
+        # Print results:
         if self.verbose:
             print()
             print("Results:")
             print(results)
+            
+        # Log results:
+        log_name = f"eval/{self.dataset.name}"
+        log_name = log_name + f"/{self.eval_name}" if self.eval_name is not None else log_name
+        writer.put_scalar_dict(name=log_name, scalar=results.to_dict(), step=self.finished_iterations)
+        # if self.finished_iterations is not None:  # TODO: remove this?
+        #     writer.put_scalar_dict(name=log_name + f"/{self.finished_iterations:09d}", scalar=results.to_dict())
+        writer.write_out_storage()
 
+        # Write results to disk:
         if self.out_dir is not None:
 
             if self.verbose:
@@ -615,10 +641,13 @@ class MultiViewDepthEvaluation:
                 sample_sparsification_curves.to_csv(osp.join(self.sample_results_dir, "sparsification_curves.csv"))
 
             self._output_dataset_cfg()
+            
+            # write done file:
+            open(self.done_file, 'w')
 
     def _output_dataset_cfg(self):
 
-        update_name = "_".join([s for s in [self.model.name, self.exp_name] if s is not None])
+        update_name = "_".join([s for s in [self.model.name, self.eval_name] if s is not None])
         dataset_updates_path = osp.join(self.qualitatives_dir, f"{update_name}.pickle")
         dataset_layout_path = osp.join(self.qualitatives_dir, "layout.pickle")
         dataset_cfg_path = osp.join(self.qualitatives_dir, "dataset.cfg")

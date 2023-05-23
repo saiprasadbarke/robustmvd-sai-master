@@ -115,8 +115,9 @@ class RobustMultiViewDepthBenchmark:
                  tanks_and_temples_size: Optional[Tuple[int, int]] = None,
                  samples: Optional[Union[int, Sequence[int]]] = None,
                  qualitatives: Union[int, Sequence[int]] = 2,
-                 exp_name: Optional[str] = None,
-                 **_):
+                 eval_name: Optional[str] = None,
+                 finished_iterations: Optional[int] = None,
+                **_):
         """Run Robust Multi-view Depth Benchmark evaluation for a model.
 
         Args:
@@ -135,7 +136,8 @@ class RobustMultiViewDepthBenchmark:
                 the indices of samples that should be evaluated. None evaluates all samples.
             qualitatives: Integer that indicates the number of qualitatives that should be logged or list that indicates
                 the indices of samples for which qualitatives should be logged. -1 logs qualitatives for all samples.
-            exp_name: Name of the experiment. Optional.
+            eval_name: Name of the experiment. Optional.
+            finished_iterations: Number of iterations that the model has been trained for. Optional.
 
         Returns:
             Results of the evaluation.
@@ -167,7 +169,7 @@ class RobustMultiViewDepthBenchmark:
 
             dataset = create_dataset(dataset_name_or_path=dataset_name, dataset_type="mvd", input_size=input_size)
             result = eval(dataset=dataset, model=model, samples=samples, qualitatives=qualitatives, burn_in_samples=3,
-                          exp_name=exp_name)
+                          eval_name=eval_name, finished_iterations=finished_iterations)
             result = prepend_level(result, "dataset", dataset_name, axis=1)
             results.append(result)
             print()

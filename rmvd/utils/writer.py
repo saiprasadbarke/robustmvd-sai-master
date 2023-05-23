@@ -30,7 +30,7 @@ from .vis import vis, check_vis
 
 EVENT_WRITERS = []
 EVENT_STORAGE = []
-GLOBAL_BUFFER = {}
+GLOBAL_BUFFER = {"max_iter": 0}
 MAX_BUFFER_SIZE = 20000
 
 
@@ -42,7 +42,7 @@ class EventType(enum.Enum):
     HISTOGRAM = "write_histogram"
 
 
-def put_scalar(name, scalar, step):
+def put_scalar(name, scalar, step=None):
     """Setter function to place scalars into the queue to be written out
 
     Args:
@@ -54,7 +54,7 @@ def put_scalar(name, scalar, step):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.SCALAR, "event": scalar, "step": step})
 
 
-def put_scalar_dict(name, scalar, step):
+def put_scalar_dict(name, scalar, step=None):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
     Args:
@@ -71,7 +71,7 @@ def put_scalar_dict(name, scalar, step):
             put_scalar(f"{name}/{key}", value, step)
 
 
-def put_scalar_list(name, scalar, step, every_nth=1, labels=None, max_to_log=None):
+def put_scalar_list(name, scalar, step=None, every_nth=1, labels=None, max_to_log=None):
     """Setter function to place a list of scalars into the queue to be written out
 
     Args:
@@ -97,7 +97,7 @@ def put_scalar_list(name, scalar, step, every_nth=1, labels=None, max_to_log=Non
                 put_scalar(f"{name}/{label}", value, step)
 
 
-def put_tensor(name, tensor, step, filter=False, **kwargs):
+def put_tensor(name, tensor, step=None, filter=False, **kwargs):
     """Setter function to place tensors into the queue to be written out
 
     Args:
@@ -111,7 +111,7 @@ def put_tensor(name, tensor, step, filter=False, **kwargs):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.TENSOR, "event": tensor, "step": step, "kwargs": kwargs})
 
 
-def put_tensor_list(name, tensor, step, every_nth=1, labels=None, max_to_log=None, filter=False, **kwargs):
+def put_tensor_list(name, tensor, step=None, every_nth=1, labels=None, max_to_log=None, filter=False, **kwargs):
     """Setter function to place a list of tensors into the queue to be written out
 
     Args:
@@ -137,7 +137,7 @@ def put_tensor_list(name, tensor, step, every_nth=1, labels=None, max_to_log=Non
                 put_tensor(f"{name}/{label}", value, step, filter=filter, **kwargs)
 
 
-def put_tensor_dict(name, tensor, step, filter=False, **kwargs):
+def put_tensor_dict(name, tensor, step=None, filter=False, **kwargs):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
     Args:
@@ -154,7 +154,7 @@ def put_tensor_dict(name, tensor, step, filter=False, **kwargs):
             put_tensor(f"{name}/{key}", value, step, filter=filter, **kwargs)
 
 
-def put_histogram(name, values, step, replace_NaNs=False):
+def put_histogram(name, values, step=None, replace_NaNs=False):
     """Setter function to place histogram into the queue to be written out
 
     Args:
@@ -174,7 +174,7 @@ def put_histogram(name, values, step, replace_NaNs=False):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.HISTOGRAM, "event": values, "step": step})
 
 
-def put_time(name, duration, step, write=True, avg_over_steps=True, update_eta=False):
+def put_time(name, duration, step=None, write=True, avg_over_steps=True, update_eta=False):
     """Setter function to place a time element into the queue to be written out.
     Processes the time info according to the options.
 
@@ -222,8 +222,9 @@ def write_out_storage():
     EVENT_STORAGE.clear()
 
 
-def setup_writers(log_wandb, log_tensorboard, max_iterations, tensorboard_logs_dir=None, wandb_logs_dir=None, exp_id=None, config=None, comment=None):
-    GLOBAL_BUFFER["max_iter"] = max_iterations
+def setup_writers(log_wandb, log_tensorboard, max_iterations=None, tensorboard_logs_dir=None, wandb_logs_dir=None, exp_id=None, config=None, comment=None):
+    if max_iterations is not None:
+        GLOBAL_BUFFER["max_iter"] = max_iterations
 
     if log_wandb:
         assert wandb_logs_dir is not None
@@ -300,14 +301,14 @@ class WandbWriter(Writer):
 
     def write_tensor(self, name, tensor, step, **kwargs):
         img = vis(tensor, **kwargs)
-        wandb.log({name: wandb.Image(img)}, step=step)
+        wandb.log({name: wandb.Image(img)}, step=step if step is not None else 0)
 
     def write_scalar(self, name, scalar, step):
         scalar = float(scalar)
-        wandb.log({name: scalar}, step=step)
+        wandb.log({name: scalar}, step=step if step is not None else 0)
 
     def write_histogram(self, name, values, step):
-        wandb.log({name: wandb.Histogram(values)}, step=step)
+        wandb.log({name: wandb.Histogram(values)}, step=step if step is not None else 0)
 
 
 class TensorboardWriter(Writer):
@@ -319,14 +320,14 @@ class TensorboardWriter(Writer):
     def write_tensor(self, name, tensor, step, **kwargs):
         filtered_kwargs = {k: v for k, v in kwargs.items() if k != "out_format"}
         img = vis(tensor, out_format={'type': 'np', 'mode': 'RGB', 'dtype': 'uint8'}, **filtered_kwargs)
-        self.writer.add_image(name, img, step)
+        self.writer.add_image(name, img, step if step is not None else 0)
 
     def write_scalar(self, name, scalar, step):
         scalar = float(scalar)
-        self.writer.add_scalar(name, scalar, step)
+        self.writer.add_scalar(name, scalar, step if step is not None else 0)
 
     def write_histogram(self, name, values, step):
-        self.writer.add_histogram(name, values, step)
+        self.writer.add_histogram(name, values, step if step is not None else 0)
 
 
 def _format_time(seconds):
