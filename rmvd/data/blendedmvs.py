@@ -168,7 +168,8 @@ class BlendedMVSMinDepth:
         with open(pose_path) as pose_file:
             depth_line = pose_file.readlines()[11]
             depths = [float(x) for x in depth_line.split(" ")]
-            min_depth, max_depth = depths[0], depths[-1]
+            min_depth, _ = depths[0], depths[-1]
+            min_depth = np.float32(min_depth)
         return min_depth  # float value
 
 
@@ -181,7 +182,8 @@ class BlendedMVSMaxDepth:
         with open(pose_path) as pose_file:
             depth_line = pose_file.readlines()[11]
             depths = [float(x) for x in depth_line.split(" ")]
-            min_depth, max_depth = depths[0], depths[-1]
+            _, max_depth = depths[0], depths[-1]
+            max_depth = np.float32(max_depth)
         return max_depth  # float value
 
 

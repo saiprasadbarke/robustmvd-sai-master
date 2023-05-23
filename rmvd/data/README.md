@@ -36,8 +36,12 @@ therefore we can't provide a download script here. Move the "raw dataset downloa
 `raw_data_downloader.sh` to a directory `/path/to/kitti/raw_data` and execute it there.
 
 Download the file "annotated depth maps data set (14 GB)" from 
-<https://www.cvlibs.net/datasets/kitti/eval_depth_all.php>. Move it to a directory 
+<https://www.cvlibs.net/datasets/kitti/eval_depth_all.php> to a directory 
 `/path/to/kitti/depth_completion_prediction/` and extract it there. The `data_depth_annotated.zip` file can be deleted.
+
+Download the file "odometry ground truth poses (4MB)" from 
+<https://www.cvlibs.net/datasets/kitti/eval_odometry.php> to a directory
+`/path/to/kitti/odometry/` and extract it there. 
 
 Then specify the KITTI directory `/path/to/kitti` in the `paths.toml` file.
 
@@ -152,26 +156,27 @@ The following describes the format for each dataset type.
 
 ### Multi-view depth (mvd) data format
 For mvd datasets each sample is a dictionary with the following keys:
-- `images`: a list of images. Each image is a numpy array of shape (3, H, W), type float32 and values from 0 to 255
-- `poses`: a list of camera poses. Each camera pose is numpy array of shape (4, 4) and type float32. The reference
+- `images`: a list of images. Each image is a numpy array of shape `(3, H, W)`, type `float32` and values from 0 to 255
+- `poses`: a list of camera poses. Each camera pose is numpy array of shape `(4, 4)` and type `float32`. The reference
   coordinate system is the keyview coordinate system (for more information, see below)
-- `intrinsics`: a list of camera intrinsics. Each camera intrinsic is numpy array of shape (3, 3) and type float32
+- `intrinsics`: a list of camera intrinsics. Each camera intrinsic is numpy array of shape `(3, 3)` and type `float32`
 - `keyview_idx`: integer that indicates the index of the keyview in the list of views, e.g. `images[keyview_idx]` is the
   keyview image
-- `depth`: depth map for the keyview. This is a numpy array of shape (1, H, W) and type float32
-- `invdepth`: inverse depth map for the keyview. This is a numpy array of shape (1, H, W) and type float32
-- `depth_range`: minimum and maximum depth values for the view. This is a tuple of the form (min_depth, max_depth)
+- `depth`: depth map for the keyview. This is a numpy array of shape `(1, H, W)` and type `float32`
+- `invdepth`: inverse depth map for the keyview. This is a numpy array of shape `(1, H, W)` and type `float32`
+- `depth_range`: minimum and maximum depth values for the view. This is a tuple of the form `(min_depth, max_depth)` where
+both `min_depth` and `max_depth` are of type `np.float32`
 
 ### Intrinsics and camera poses
-Intrinsics are numpy arrays of shape (3, 3) and given as follows:
+Intrinsics are numpy arrays of shape `(3, 3)` and given as follows:
 ```python
 [[fx, 0, cx],
 [0, fy, cy],
 [0, 0, 1]]
 ```
-The unit for the focal lengths fx, fy and the principal points cx, cy is pixels.
+The unit for the focal lengths `fx`, `fy` and the principal points `cx`, `cy` is pixels.
 
-Camera poses are numpy arrays of shape (4, 4) and given as follows:
+Camera poses are numpy arrays of shape `(4, 4)` and given as follows:
 ```python
 [[r11, r12, r13, tx],
  [r21, r22, r23, ty],
@@ -187,7 +192,7 @@ transforms: `cur_to_key_transform = cur_to_ref_transform @ ref_to_key_transform`
 The unit for the translation is meters.
 
 ### Depth maps
-Depths are provided with the key "depth" and are given in meters. Invalid depth values are set to 0.
+Depths are provided with the key `depth` and are given in meters. Invalid depth values are set to 0.
 
 Additionally, inverse depths (unit: 1/m) are provided with the key "invdepth". 
 Invalid inverse depth values are set to 0. 
@@ -195,16 +200,16 @@ Invalid inverse depth values are set to 0.
 ### Batched data format
 Data can be loaded as batches of `N >= 1` samples. In this case, a batch dimension is added. A "batched" sample is
 a dictionary the same keys as described above, but different shapes:
-- `images`: a list of images. Each image is a numpy array of shape (N, 3, H, W), type float32 and values from 0 to 255
-- `poses`: a list of camera poses. Each camera pose is numpy array of shape (N, 4, 4) and type float32
-- `intrinsics`: a list of camera intrinsics. Each camera intrinsic is numpy array of shape (N, 3, 3) and type float32
-- `keyview_idx`: numpy array of shape (N,) and type int64. Each element indicates the index of the keyview in each
+- `images`: a list of images. Each image is a numpy array of shape `(N, 3, H, W)`, type `float32` and values from 0 to 255
+- `poses`: a list of camera poses. Each camera pose is numpy array of shape `(N, 4, 4)` and type `float32`
+- `intrinsics`: a list of camera intrinsics. Each camera intrinsic is numpy array of shape `(N, 3, 3)` and type `float32`
+- `keyview_idx`: numpy array of shape `(N,)` and type `int64`. Each element indicates the index of the keyview in each
   sample in the batch
-- `depth`: depth map for the keyview. This is a numpy array of shape (N, 1, H, W) and type float32
-- `invdepth`: inverse depth map for the keyview. This is a numpy array of shape (N, 1, H, W) and type float32
-- `depth_range`: list of length 2 and where first element is a tuple with N floats that indicates the minimum depth
-  values of each sample in the batch and the second element is a tuple with N floats that indicates the maximum depth
-  values of each sample in the batch
+- `depth`: depth map for the keyview. This is a numpy array of shape `(N, 1, H, W)` and type `float32`
+- `invdepth`: inverse depth map for the keyview. This is a numpy array of shape `(N, 1, H, W)` and type `float32`
+- `depth_range`: list of length 2 and where first element is a numpy array of shape `(N,)` and type `float32` that indicates
+ the minimum depth values of each sample in the batch and the second element is a numpy array of shape `(N,)` and type `float32`
+  that indicates the maximum depth values of each sample in the batch
 
 ### `torch` data format
 Datasets can be created with the argument `to_torch=True`. In this case, all numpy arrays are converted to torch 
