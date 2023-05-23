@@ -27,7 +27,7 @@ class MultiScaleUniLaplace(nn.Module):
         self.deterministic_loss_iterations = deterministic_loss_iterations
         self.mean_scaling_factor = mean_scaling_factor
 
-        self.reg_params = self.get_regularization_parameters(model)  # TODO: I think there is a better way in pytorch to do this
+        self.reg_params = self.get_regularization_parameters(model)
 
         if self.verbose:
             print(f"\tWeight decay: {self.weight_decay}")

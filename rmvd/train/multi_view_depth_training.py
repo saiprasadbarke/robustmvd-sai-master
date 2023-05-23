@@ -338,7 +338,7 @@ class MultiViewDepthTraining:
             writer.put_tensor(name=f"{base_name}/01_pred_depth_uncertainty", tensor=pred_depth_uncertainty,
                               step=self.finished_iterations, full_batch=self.log_full_batch)
 
-        writer.put_tensor_dict(name=f"{base_name}/02_aux", tensor=aux, step=self.finished_iterations,
+        writer.put_tensor_dict(name=f"{base_name}/02_aux", tensor=aux, step=self.finished_iterations, filter=True,
                                full_batch=self.log_full_batch)
 
     def _log_loss(self, loss, sub_losses, pointwise_losses, scalars_only=True):

@@ -26,7 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import make_np
 import wandb
 
-from .vis import vis, vis_image, vis_2d_array
+from .vis import vis, check_vis
 
 EVENT_WRITERS = []
 EVENT_STORAGE = []
@@ -97,7 +97,7 @@ def put_scalar_list(name, scalar, step, every_nth=1, labels=None, max_to_log=Non
                 put_scalar(f"{name}/{label}", value, step)
 
 
-def put_tensor(name, tensor, step, **kwargs):
+def put_tensor(name, tensor, step, filter=False, **kwargs):
     """Setter function to place tensors into the queue to be written out
 
     Args:
@@ -105,10 +105,13 @@ def put_tensor(name, tensor, step, **kwargs):
         tensor: tensor to write out
         step: step associated with tensor
     """
+    if filter and not check_vis(tensor):
+        return
+    
     EVENT_STORAGE.append({"name": name, "write_type": EventType.TENSOR, "event": tensor, "step": step, "kwargs": kwargs})
 
 
-def put_tensor_list(name, tensor, step, every_nth=1, labels=None, max_to_log=None, **kwargs):
+def put_tensor_list(name, tensor, step, every_nth=1, labels=None, max_to_log=None, filter=False, **kwargs):
     """Setter function to place a list of tensors into the queue to be written out
 
     Args:
@@ -127,14 +130,14 @@ def put_tensor_list(name, tensor, step, every_nth=1, labels=None, max_to_log=Non
             label = str(tensor_idx) if labels is None else labels[tensor_idx]
 
             if isinstance(value, dict):
-                put_tensor_dict(f"{name}/{label}", value, step, **kwargs)
+                put_tensor_dict(f"{name}/{label}", value, step, filter=filter, **kwargs)
             elif isinstance(value, list):
-                put_tensor_list(f"{name}/{label}", value, step, **kwargs)
+                put_tensor_list(f"{name}/{label}", value, step, filter=filter, **kwargs)
             else:
-                put_tensor(f"{name}/{label}", value, step, **kwargs)
+                put_tensor(f"{name}/{label}", value, step, filter=filter, **kwargs)
 
 
-def put_tensor_dict(name, tensor, step, **kwargs):
+def put_tensor_dict(name, tensor, step, filter=False, **kwargs):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
     Args:
@@ -144,11 +147,11 @@ def put_tensor_dict(name, tensor, step, **kwargs):
     """
     for key, value in tensor.items():
         if isinstance(value, dict):
-            put_tensor_dict(f"{name}/{key}", value, step, **kwargs)
+            put_tensor_dict(f"{name}/{key}", value, step, filter=filter, **kwargs)
         elif isinstance(value, list):
-            put_tensor_list(f"{name}/{key}", value, step, **kwargs)
+            put_tensor_list(f"{name}/{key}", value, step, filter=filter, **kwargs)
         else:
-            put_tensor(f"{name}/{key}", value, step, **kwargs)
+            put_tensor(f"{name}/{key}", value, step, filter=filter, **kwargs)
 
 
 def put_histogram(name, values, step, replace_NaNs=False):

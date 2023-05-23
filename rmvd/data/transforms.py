@@ -352,7 +352,7 @@ class Scale3DFixed:
         return sample
 
 
-class MaskDepth:
+class MaskDepthByMinMax:
     def __init__(self, min_depth, max_depth):
         self.__min_depth = min_depth
         self.__max_depth = max_depth
@@ -370,6 +370,9 @@ class MaskDepth:
         sample["depth_range"] = depth_range
         
         return sample
+    
+
+# TODO: MaskDepthForMVSNet
 
 
 class NormalizeIntrinsics:
