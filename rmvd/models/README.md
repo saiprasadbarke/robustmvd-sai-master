@@ -169,6 +169,50 @@ of this `README`).
 
 It is not necessary to install additional dependencies.
 
+### `gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped`
+This is the GMDepth depth estimation model that was trained on Demon datasets (RGBD-SLAM, SUN3D, Scenes11) as
+presented in the publication "Unifying Flow, Stereo and Depth Estimation" by Xu et al. (Section 4.5.3 "Depth Estimation", 
+paragraph "RGBD-SLAM, SUN3D, and Scenes11", evaluation in Table 17). 
+The model is wrapped around the original implementation from <https://github.com/autonomousvision/unimatch>, where it is 
+indicated as `GMDepth-scale1-regrefine1-resumeflowthings-demon`.
+(see <https://github.com/autonomousvision/unimatch/blob/master/MODEL_ZOO.md>).
+
+#### Setup:
+From the directory of this `README` file, execute the script `scripts/setup_gmdepth.sh` and specify the local
+directory to clone the original repository:
+```bash
+./scripts/setup_gmdepth.sh /path/to/gmdepth
+```
+
+Then specify the local directory `/path/to/gmdepth` in the `wrappers/paths.toml` file (relative to the directory of  
+this `README`).
+
+It is not necessary to install additional dependencies.
+
+### `gmdepth_scale1_regrefine1_resumeflowthings_scannet_wrapped`
+This is the GMDepth depth estimation model that was trained on the ScanNet dataset (using BA-Net splits) as
+presented in the publication "Unifying Flow, Stereo and Depth Estimation" by Xu et al. (Section 4.5.3 "Depth Estimation", 
+paragraph "ScanNet", evaluation in Table 16). 
+The model is wrapped around the original implementation from <https://github.com/autonomousvision/unimatch>, where it is 
+indicated as `GMDepth-scale1-regrefine1-resumeflowthings-scannet`.
+(see <https://github.com/autonomousvision/unimatch/blob/master/MODEL_ZOO.md>).
+
+#### Setup:
+Same as for the `gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped` model.
+
+### Other `gmdepth` models
+
+The original implementation of `gmdepth` (see <https://github.com/autonomousvision/unimatch/blob/master/MODEL_ZOO.md>) 
+provides several other models that are not mentioned in the publication.
+Those models are available as follows:
+- `gmdepth_scale1_resumeflowthings_demon_wrapped` is a wrapper around the official `GMDepth-scale1-resumeflowthings-demon` model
+- `gmdepth_scale1_demon_wrapped` is a wrapper around the official `GMDepth-scale1-demon` model
+- `gmdepth_scale1_resumeflowthings_scannet_wrapped` is a wrapper around the official `GMDepth-scale1-resumeflowthings-scannet` model
+- `gmdepth_scale1_scannet_wrapped` is a wrapper around the official `GMDepth-scale1-scannet` model
+
+#### Setup:
+Same as for the `gmdepth_scale1_regrefine1_resumeflowthings_demon_wrapped` model.
+
 ---
 
 ## Usage
