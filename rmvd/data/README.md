@@ -387,3 +387,20 @@ is used.
 ##### Source views:
 10 source views are used, which are selected with the view selection script from
 <https://github.com/FangjinhuaWang/PatchmatchNet/blob/main/colmap_input.py>.
+
+### BlendedMVS
+#### `robust_mvd` split
+This is the training split used in "A Benchmark and a Baseline for Robust Depth Estimation" by Schröppel et al. 
+It is based on the official training split of BlendedMVS, which consists of 106 of the 113 available scenes
+(see <https://github.com/YoYo000/BlendedMVS/blob/master/project_lists/BlendedMVS_training.txt>).
+For the `robust_mvd` split, samples are defined to consist of a keyview and 4 source views. The official data
+lists 10 source views for each keyview (with different scores for each source view). In this split, all combinations
+of 4 source views out of this 10 source views are used.
+Further, the official ground truth depth maps and depth ranges are used.
+
+#### `train_mvsnet` split
+This is the training split that was used in "BlendedMVS: A Large-scale Dataset for Generalized Multi-view Stereo Networks" by Yao et al.
+to train MVSNet. It is based on the official training split of BlendedMVS, which consists of 106 of the 113 available scenes
+(see <https://github.com/YoYo000/BlendedMVS/blob/master/project_lists/BlendedMVS_training.txt>). Samples are defined
+to consist of a keyview and the 2 source views with the highest score. The official ground truth depth maps and depth ranges
+are used.

@@ -265,7 +265,7 @@ class MultiViewDepthTraining:
         return sorted(checkpoints)
 
     def _restore_weights(self):
-        all_checkpoints = self._get_all_checkpoints()
+        all_checkpoints = sorted(self.saver_all.get_checkpoints(include_iteration=True))
         if len(all_checkpoints) > 0:
             
             print("Existing checkpoints:")

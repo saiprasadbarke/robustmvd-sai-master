@@ -88,7 +88,7 @@ class MultiViewDepthEvaluation:
             self.quantitatives_dir = osp.join(self.out_dir)
             self.sample_results_dir = osp.join(self.quantitatives_dir, "per_sample")
             self.qualitatives_dir = osp.join(self.out_dir, "qualitative")
-            self.done_file = osp.join(self.out_dir, "DONE")
+            self.results_file = osp.join(self.quantitatives_dir, ".results_df.pickle")
             os.makedirs(self.out_dir, exist_ok=True)
             os.makedirs(self.quantitatives_dir, exist_ok=True)
             os.makedirs(self.sample_results_dir, exist_ok=True)
@@ -97,7 +97,7 @@ class MultiViewDepthEvaluation:
             self.quantitatives_dir = None
             self.sample_results_dir = None
             self.qualitatives_dir = None
-            self.done_file = None
+            self.results_file = None
 
         self.inputs = list(set(inputs + ["images"])) if inputs is not None else ["images"]
         self.alignment = alignment
@@ -175,9 +175,10 @@ class MultiViewDepthEvaluation:
         Returns:
             Results of the evaluation.
         """
-        if self.done_file is not None and osp.exists(self.done_file):
+        if self.results_file is not None and osp.exists(self.results_file):
             print(f"Skipping evaluation {self.name} because it is already finished.")
-            return None
+            results = pd.read_pickle(self.results_file)
+            return results
         
         self._init_evaluation(dataset=dataset, model=model, samples=samples, qualitatives=qualitatives,
                               burn_in_samples=burn_in_samples, eval_name=eval_name, finished_iterations=finished_iterations)
@@ -642,8 +643,9 @@ class MultiViewDepthEvaluation:
 
             self._output_dataset_cfg()
             
-            # write done file:
-            open(self.done_file, 'w')
+            self.results.to_pickle(self.results_file)
+            
+        
 
     def _output_dataset_cfg(self):
 

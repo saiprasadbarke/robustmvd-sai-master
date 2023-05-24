@@ -478,6 +478,7 @@ class PlanesweepCorrelation(nn.Module):
     @torch.no_grad()
     def get_plane_sweep_sampling_points(self, sampling_invdepths):
 
+        sampling_invdepths = sampling_invdepths.to(self.device)
         ds = sampling_invdepths
         zs = 1./ds
 
@@ -525,7 +526,7 @@ def compute_sampling_invdepths(min_depth, max_depth, num_samples, sampling_type=
     min_depth = to_torch(min_depth)[..., None]  # shape [1, 1] or [N, 1]
     max_depth = to_torch(max_depth)[..., None]  # shape [1, 1] or [N, 1]
     min_invdepth = (1 / max_depth)
-    max_invdepth = (1 / min_depth)[..., None]
+    max_invdepth = (1 / min_depth)
     steps = torch.arange(0, num_samples, dtype=min_invdepth.dtype, device=min_invdepth.device)[None, ...]  # shape [1, num_samples]
     
     if sampling_type == 'linear_invdepth':
