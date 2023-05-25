@@ -1,5 +1,5 @@
 [monodepth2]
-    root = '/tmp/monodepth2/'
+    root = '/tmp/monodepth2'
 
 [mvsnet_pl]
     root = '/tmp/mvsnet_pl'
@@ -15,3 +15,6 @@
 
 [vis_mvsnet]
     root = '/tmp/vis_mvsnet'
+
+[gmdepth]
+    root = '/tmp/gmdepth'

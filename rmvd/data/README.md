@@ -18,7 +18,30 @@ Some datasets have different splits, e.g. `train` and `test`, or some custom spl
 ## Setup
 All datasets need to be downloaded and some need to be preprocessed before they can be used. For some datasets, 
 download scripts are provided; for others, the data has to be downloaded manually.
-The root paths of the datasets need to be specified in the file `paths.toml`. 
+The root paths of the datasets need to be specified in the `paths.toml` file.
+
+---
+
+## The `paths.toml` file
+
+The `paths.toml` file contains the root paths of the datasets. It can be located at:
+- `rmvd/data/paths.toml` (prioretized)
+- `~/rmvd_data_paths.toml` (useful when working on the `rmvd` framework and using `git`)
+
+It is required to create such a `paths.toml` file at one of the above locations.
+The file should contain the root paths of the datasets. The format is as follows:
+```toml
+[eth3d]
+    root = '/tmp/eth3d/'
+
+...
+```
+
+A template `path.tomls` file is provided at `rmvd/data/_paths.toml`. Further details
+can be found in the respective dataset setup descriptions below.
+
+---
+
 The following describes the setup for each individual dataset.
 
 ### ETH3D

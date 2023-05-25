@@ -21,12 +21,13 @@ from rmvd.data.transforms import ResizeInputs
 
 
 class CVPMVSNet_Wrapped(nn.Module):
+    
     def __init__(self, num_sampling_steps=192):
         super().__init__()
 
         import sys
 
-        paths_file = osp.join(osp.dirname(osp.realpath(__file__)), "paths.toml")
+        paths_file = self.get_paths_file()
         repo_path = get_path(paths_file, "cvp_mvsnet", "root")
         sys.path.insert(0, osp.join(repo_path, "CVP_MVSNet"))
 
@@ -44,6 +45,20 @@ class CVPMVSNet_Wrapped(nn.Module):
         self.model.load_state_dict(state_dict, strict=False)
 
         self.num_sampling_steps = num_sampling_steps
+        
+    def get_paths_file(self):
+        rmvd_paths_file = osp.join(osp.dirname(osp.realpath(__file__)), "paths.toml")
+        home_paths_file = osp.join(osp.expanduser('~'), 'rmvd_model_paths.toml')
+    
+        if osp.exists(rmvd_paths_file):
+            paths_file = rmvd_paths_file
+        elif osp.exists(home_paths_file):
+            paths_file = home_paths_file
+        else:
+            raise FileNotFoundError("No paths.toml file found. Please create a paths.toml file as specified in the "
+                                "rmvd/models/README.md file.")
+            
+        return paths_file
 
     def input_adapter(
         self, images, keyview_idx, poses=None, intrinsics=None, depth_range=None  # TODO: does it make sense that poses etc are set to None?

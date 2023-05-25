@@ -254,7 +254,17 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
 
 
 def _get_paths():
-    paths_file = osp.join(osp.dirname(osp.realpath(__file__)), 'paths.toml')
+    rmvd_paths_file = osp.join(osp.dirname(osp.realpath(__file__)), 'paths.toml')
+    home_paths_file = osp.join(osp.expanduser('~'), 'rmvd_data_paths.toml')
+    
+    if osp.exists(rmvd_paths_file):
+        paths_file = rmvd_paths_file
+    elif osp.exists(home_paths_file):
+        paths_file = home_paths_file
+    else:
+        raise FileNotFoundError("No paths.toml file found. Please create a paths.toml file as specified in the "
+                               "rmvd/data/README.md file.")
+    
     with open(paths_file, 'r') as paths_file:
         return pytoml.load(paths_file)
 

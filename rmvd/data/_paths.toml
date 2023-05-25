@@ -25,4 +25,3 @@
 [staticthings3d]
     [staticthings3d.train]
         root = '/tmp/staticthings3d_converted/TRAIN/'
-

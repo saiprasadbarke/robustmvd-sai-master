@@ -15,7 +15,7 @@ class Monodepth2_Wrapped(nn.Module):
         super().__init__()
 
         import sys
-        paths_file = osp.join(osp.dirname(osp.realpath(__file__)), 'paths.toml')
+        paths_file = self.get_paths_file()
         repo_path = get_path(paths_file, "monodepth2", "root")
         sys.path.insert(0, repo_path)
         import networks
@@ -44,6 +44,20 @@ class Monodepth2_Wrapped(nn.Module):
         self.width = encoder_weights['width']
 
         self.trained_on_stereo = trained_on_stereo
+        
+    def get_paths_file(self):
+        rmvd_paths_file = osp.join(osp.dirname(osp.realpath(__file__)), "paths.toml")
+        home_paths_file = osp.join(osp.expanduser('~'), 'rmvd_model_paths.toml')
+    
+        if osp.exists(rmvd_paths_file):
+            paths_file = rmvd_paths_file
+        elif osp.exists(home_paths_file):
+            paths_file = home_paths_file
+        else:
+            raise FileNotFoundError("No paths.toml file found. Please create a paths.toml file as specified in the "
+                                "rmvd/models/README.md file.")
+            
+        return paths_file
 
     def input_adapter(self, images, keyview_idx, poses=None, intrinsics=None, depth_range=None):
         device = get_torch_model_device(self)

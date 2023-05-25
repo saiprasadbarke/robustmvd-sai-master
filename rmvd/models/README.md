@@ -17,14 +17,34 @@ Wrapped models are indicated by names that end with `_wrapped`.
 The setup of these models is usually a bit more involved, as it is required to download the original implementation
 (e.g. cloning the respective repository from GitHub). Usually the setup requires the follwing steps:
 - clone the original repository to a local directory
-- specify the path to the local directory in the `wrappers/paths.toml` file
+- specify the path to the local directory in the `paths.toml` file
 - install required model-specific dependencies
-
-The following provides an overview of all available models including their respective setup instructions.
 
 ---
 
+## The `paths.toml` file
+
+The `paths.toml` file contains paths to local directories of wrapped models. It can be located at:
+- `rmvd/models/wrappers/paths.toml` (prioretized)
+- `~/rmvd_model_paths.toml` (useful when working on the `rmvd` framework and using `git`)
+
+To use wrapped models, it is required to create such a `paths.toml` file at one of the above locations.
+The file should contain the paths to the local directories of the wrapped models. The format is as follows:
+```toml
+[monodepth2]
+    root = '/tmp/monodepth2'
+
+...
+```
+
+A template `path.tomls` file is provided at `rmvd/models/wrappers/_paths.toml`. Further details
+can be found in the respective model descriptions below.
+
+--
+
 ## Available models
+
+The following provides an overview of all available models including their respective setup instructions.
 
 ### `robust_mvd`
 This is the Robust MVD Baseline Model presented in the publication 
@@ -48,7 +68,7 @@ directory to clone the original repository:
 ./scripts/setup_monodepth2.sh /path/to/monodepth2
 ```
 
-Then specify the local directory `/path/to/monodepth2` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/monodepth2` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is not necessary to install additional dependencies.
@@ -85,7 +105,7 @@ directory to clone the original repository:
 ./scripts/setup_mvsnet_pl.sh /path/to/mvsnet_pl
 ```
 
-Then specify the local directory `/path/to/mvsnet_pl` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/mvsnet_pl` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is required to install additional dependencies. You might want to set up a new virtual environment for this:
@@ -107,7 +127,7 @@ directory to clone the original repository:
 ./scripts/setup_midas.sh /path/to/midas
 ```
 
-Then specify the local directory `/path/to/midas` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/midas` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is not necessary to install additional dependencies.
@@ -123,7 +143,7 @@ directory to clone the original repository:
 ./scripts/setup_vis_mvsnet.sh /path/to/vis_mvsnet
 ```
 
-Then specify the local directory `/path/to/vis_mvsnet` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/vis_mvsnet` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is not necessary to install additional dependencies.
@@ -140,7 +160,7 @@ directory to clone the original repository:
 ./scripts/setup_cvp_mvsnet.sh /path/to/cvp_mvsnet
 ```
 
-Then specify the local directory `/path/to/cvp_mvsnet` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/cvp_mvsnet` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is not necessary to install additional dependencies.
@@ -164,7 +184,7 @@ directory to clone the original repository:
 ./scripts/setup_patchmatchnet.sh /path/to/patchmatchnet
 ```
 
-Then specify the local directory `/path/to/patchmatchnet` in the `wrappers/paths.toml` file (relative to the directory 
+Then specify the local directory `/path/to/patchmatchnet` in the `paths.toml` file (relative to the directory 
 of this `README`).
 
 It is not necessary to install additional dependencies.
@@ -184,7 +204,7 @@ directory to clone the original repository:
 ./scripts/setup_gmdepth.sh /path/to/gmdepth
 ```
 
-Then specify the local directory `/path/to/gmdepth` in the `wrappers/paths.toml` file (relative to the directory of  
+Then specify the local directory `/path/to/gmdepth` in the `paths.toml` file (relative to the directory of  
 this `README`).
 
 It is not necessary to install additional dependencies.

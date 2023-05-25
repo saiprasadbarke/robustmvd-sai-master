@@ -23,7 +23,7 @@ class GMDepth_Wrapped(nn.Module):
 
         import sys
 
-        paths_file = osp.join(osp.dirname(osp.realpath(__file__)), "paths.toml")
+        paths_file = self.get_paths_file()
         repo_path = get_path(paths_file, "gmdepth", "root")
         sys.path.insert(0, repo_path)
 
@@ -56,6 +56,20 @@ class GMDepth_Wrapped(nn.Module):
         # padder parameters are the ones that are used when calling the script scripts/gmdepth_evaluate.sh
         # in the original repo
         self.create_input_padder = lambda img_shape: InputPadder(img_shape, padding_factor=16, mode='kitti')
+        
+    def get_paths_file(self):
+        rmvd_paths_file = osp.join(osp.dirname(osp.realpath(__file__)), "paths.toml")
+        home_paths_file = osp.join(osp.expanduser('~'), 'rmvd_model_paths.toml')
+    
+        if osp.exists(rmvd_paths_file):
+            paths_file = rmvd_paths_file
+        elif osp.exists(home_paths_file):
+            paths_file = home_paths_file
+        else:
+            raise FileNotFoundError("No paths.toml file found. Please create a paths.toml file as specified in the "
+                                "rmvd/models/README.md file.")
+            
+        return paths_file
 
     def input_adapter(
         self, images, keyview_idx, poses=None, intrinsics=None, depth_range=None
