@@ -79,7 +79,7 @@ class RobustMVD(nn.Module):
 
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses=None, intrinsics=None, depth_range=None):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics, **_):
         device = get_torch_model_device(self)
 
         orig_ht, orig_wd = images[0].shape[-2:]
@@ -96,15 +96,14 @@ class RobustMVD(nn.Module):
         scale_arr = np.array([[wd]*3, [ht]*3, [1.]*3], dtype=np.float32)  # 3, 3
         intrinsics = [intrinsic / scale_arr for intrinsic in intrinsics]
 
-        images, keyview_idx, poses, intrinsics, depth_range = \
-            to_torch((images, keyview_idx, poses, intrinsics, depth_range), device=device)
+        images, keyview_idx, poses, intrinsics = \
+            to_torch((images, keyview_idx, poses, intrinsics), device=device)
 
         sample = {
             'images': images,
             'keyview_idx': keyview_idx,
             'poses': poses,
             'intrinsics': intrinsics,
-            'depth_range': depth_range,
         }
         return sample
 

@@ -6,7 +6,6 @@ import numpy as np
 
 from .registry import register_model
 from .helpers import build_model_with_cfg
-from .blocks.dispnet_context_encoder import DispnetContextEncoder
 from .blocks.mvsnet_encoder import MVSNetEncoder
 from .blocks.planesweep_corr import PlanesweepCorrelation
 from .blocks.variance_costvolume_fusion import VarianceCostvolumeFusion
@@ -14,7 +13,7 @@ from .blocks.mvsnet_fused_costvolume_encoder import MVSNetFusedCostvolumeEncoder
 from .blocks.mvsnet_decoder import MVSNetDecoder
 
 from rmvd.utils import get_torch_model_device, to_numpy, to_torch, select_by_index, exclude_index
-from rmvd.data.transforms import ResizeInputs
+from rmvd.data.transforms import UpscaleInputsToNextMultipleOf, NormalizeIntrinsics, NormalizeImagesToMinMax, NormalizeImagesByShiftAndScale
 
 
 class MVSNet(nn.Module):
@@ -44,7 +43,7 @@ class MVSNet(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, depth_range, keyview_idx, **_):
+    def forward(self, images, poses, intrinsics, keyview_idx, depth_range=None, **_):
 
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
@@ -54,7 +53,14 @@ class MVSNet(nn.Module):
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
         
-        min_depth, max_depth = depth_range
+        if depth_range is None:
+            device = get_torch_model_device(self)
+            N = images[0].shape[0]
+            min_depth = torch.tensor([0.2]*N, dtype=torch.float32, device=device)
+            max_depth = torch.tensor([100.]*N, dtype=torch.float32, device=device)
+            depth_range = [min_depth, max_depth]
+        else:
+            min_depth, max_depth = depth_range
 
         all_enc_key, enc_key = self.encoder(image_key)
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
@@ -78,22 +84,15 @@ class MVSNet(nn.Module):
 
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses=None, intrinsics=None, depth_range=None):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range=None):
         device = get_torch_model_device(self)
-
-        orig_ht, orig_wd = images[0].shape[-2:]
-        ht, wd = int(math.ceil(orig_ht / 64.0) * 64.0), int(math.ceil(orig_wd / 64.0) * 64.0)
-        if (orig_ht != ht) or (orig_wd != wd):
-            resized = ResizeInputs(size=(ht, wd))({'images': images, 'intrinsics': intrinsics})
-            images = resized['images']
-            intrinsics = resized['intrinsics']
-
-        # normalize images
-        images = [image / 255.0 - 0.4 for image in images]
-
-        # model works with relative intrinsics:
-        scale_arr = np.array([[wd]*3, [ht]*3, [1.]*3], dtype=np.float32)  # 3, 3
-        intrinsics = [intrinsic / scale_arr for intrinsic in intrinsics]
+        
+        resized = UpscaleInputsToNextMultipleOf(32)({'images': images, 'intrinsics': intrinsics})
+        resized = NormalizeIntrinsics()(resized)
+        resized = NormalizeImagesToMinMax(min_val=0., max_val=1.)(resized)
+        resized = NormalizeImagesByShiftAndScale(shift=[0.485, 0.456, 0.406], scale=[0.229, 0.224, 0.225])(resized)
+        images = resized['images']
+        intrinsics = resized['intrinsics']
 
         images, keyview_idx, poses, intrinsics, depth_range = \
             to_torch((images, keyview_idx, poses, intrinsics, depth_range), device=device)
@@ -114,7 +113,7 @@ class MVSNet(nn.Module):
 
 @register_model
 def mvsnet_blendedmvs(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
-    assert pretrained is False, "Pretrained weights are not available for this model."
+    assert not (pretrained and weights is None), "Pretrained weights are not available for this model."
     # weights = pretrained_weights if (pretrained and weights is None) else weights
     model = build_model_with_cfg(model_cls=MVSNet, weights=weights, train=train, num_gpus=num_gpus, num_sampling_points=128)
     return model

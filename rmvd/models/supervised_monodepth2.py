@@ -16,7 +16,7 @@ import torchvision.models as models
 from rmvd.utils import select_by_index, get_torch_model_device, to_torch, to_numpy
 from .registry import register_model
 from .helpers import build_model_with_cfg
-from rmvd.data.transforms import UpscaleToNextMultipleOf
+from rmvd.data.transforms import UpscaleInputsToNextMultipleOf
 
 
 class ConvBlock(nn.Module):
@@ -150,7 +150,7 @@ class SupervisedMonodepth2(nn.Module):
         device = get_torch_model_device(self)
 
         image = select_by_index(images, keyview_idx)
-        resized = UpscaleToNextMultipleOf(8)({'images': [image]})
+        resized = UpscaleInputsToNextMultipleOf(8)({'images': [image]})
         image = resized['images'][0]
 
         image = image / 255
