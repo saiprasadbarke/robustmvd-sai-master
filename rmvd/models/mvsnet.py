@@ -21,8 +21,10 @@ class MVSNet(nn.Module):
         super().__init__()
 
         base_channels = 8
+        self.num_sampling_points = num_sampling_points
+        self.sampling_type = sampling_type
         self.encoder = MVSNetEncoder(base_channels=base_channels)
-        self.corr_block = PlanesweepCorrelation(num_sampling_points=num_sampling_points, sampling_type=sampling_type, normalize=False, warp_only=True)
+        self.corr_block = PlanesweepCorrelation(normalize=False, warp_only=True)
         self.fusion_block = VarianceCostvolumeFusion()
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(in_channels=32, base_channels=8, batch_norm=True)
         self.decoder = MVSNetDecoder(in_channels=64)
@@ -67,7 +69,9 @@ class MVSNet(nn.Module):
 
         corrs, masks, sampling_invdepths = self.corr_block(feat_key=enc_key, intrinsics_key=intrinsics_key, feat_sources=enc_sources,
                                                            source_to_key_transforms=source_to_key_transforms,
-                                                           intrinsics_sources=intrinsics_source, min_depth=min_depth, max_depth=max_depth)
+                                                           intrinsics_sources=intrinsics_source, 
+                                                           num_sampling_points=self.num_sampling_points, sampling_type=self.sampling_type,
+                                                           min_depth=min_depth, max_depth=max_depth)
 
         fused_corr, _ = self.fusion_block(feat_key=enc_key, corrs=corrs, masks=masks)
 

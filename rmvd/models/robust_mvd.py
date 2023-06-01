@@ -23,7 +23,7 @@ class RobustMVD(nn.Module):
 
         self.encoder = DispnetEncoder()
         self.context_encoder = DispnetContextEncoder()
-        self.corr_block = PlanesweepCorrelation(num_sampling_points=256, min_depth=0.4, max_depth=1000.)
+        self.corr_block = PlanesweepCorrelation()
         self.fusion_block = LearnedFusion()
         self.fusion_enc_block = DispnetCostvolumeEncoder()
         self.decoder = DispnetDecoder()
@@ -59,9 +59,10 @@ class RobustMVD(nn.Module):
 
         ctx = self.context_encoder(enc_key)
 
-        corrs, masks, _ = self.corr_block(feat_key=enc_key, intrinsics_key=intrinsics_key, feat_sources=enc_sources,
+        corrs, masks, _ = self.corr_block(feat_key=enc_key, intrinsics_key=intrinsics_key, feat_sources=enc_sources, 
                                           source_to_key_transforms=source_to_key_transforms,
-                                          intrinsics_sources=intrinsics_source)
+                                          intrinsics_sources=intrinsics_source, 
+                                          num_sampling_points=256, min_depth=0.4, max_depth=1000.)
 
         fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
 

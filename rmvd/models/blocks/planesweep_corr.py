@@ -363,14 +363,7 @@ class EpipolarSamplingPoints:
 
 class PlanesweepCorrelation(nn.Module):
     @torch.no_grad()
-    def __init__(self, num_sampling_points=None, min_depth=None, max_depth=None, sampling_invdepths=None, sampling_type='linear_invdepth',
-                 warp_only=False, normalize='dim'):
-        
-        # Options: 
-        # num_sampling_points, min_depth, max_depth, sampling_invdepths are all None -> must be set in forward function
-        # num_sampling_points is not None, others are None -> (min_depth and max_depth) or (sampling_invdepths) must be set in forward function
-        # num_sampling_points, min_depth, max_depth are not None -> sampling_invdepths must be None and is computed from the other three
-        # sampling_invdepths is not None -> num_sampling_points, min_depth, max_depth must be None
+    def __init__(self, warp_only=False, normalize='dim'):
 
         super().__init__()
 
@@ -381,17 +374,6 @@ class PlanesweepCorrelation(nn.Module):
         self.intrinsics_sources = None
         self.source_to_key_transforms = None
         self.device = None
-
-        self.num_sampling_points = num_sampling_points
-        self.sampling_type = sampling_type
-        if min_depth is not None and max_depth is not None:
-            assert self.num_sampling_points is not None and self.sampling_type is not None and sampling_invdepths is None
-            self.sampling_invdepths = compute_sampling_invdepths(min_depth, max_depth, self.num_sampling_points, self.sampling_type)
-        elif sampling_invdepths is not None:
-            assert self.num_sampling_points is None and min_depth is None and max_depth is None
-            self.sampling_invdepths = sampling_invdepths
-        else:
-            self.sampling_invdepths = None
 
         if not warp_only:
             self.corr_block = TorchCorr(normalize=normalize, padding_mode='zeros')
@@ -406,24 +388,7 @@ class PlanesweepCorrelation(nn.Module):
         self.masks = []
 
     def forward(self, feat_key, intrinsics_key, feat_sources, source_to_key_transforms, intrinsics_sources=None, 
-                num_sampling_points=None, min_depth=None, max_depth=None, sampling_invdepths=None, sampling_type=None):
-        
-        if min_depth is not None and max_depth is not None:
-            assert sampling_invdepths is None
-            num_sampling_points = num_sampling_points if num_sampling_points is not None else self.num_sampling_points
-            assert num_sampling_points is not None
-            sampling_type = sampling_type if sampling_type is not None else self.sampling_type
-            assert sampling_type is not None
-            sampling_invdepths = compute_sampling_invdepths(min_depth, max_depth, num_sampling_points, sampling_type)
-        elif sampling_invdepths is not None:
-            assert num_sampling_points is None and min_depth is None and max_depth is None
-        else:
-            sampling_invdepths = self.sampling_invdepths
-            
-        sampling_invdepths = sampling_invdepths.to(self.device)
-        assert sampling_invdepths.ndim >= 2  # (N, S) or (N, S, H) or (N, S, H, W)
-        while sampling_invdepths.ndim < 4:
-            sampling_invdepths = sampling_invdepths.unsqueeze(-1)
+                num_sampling_points=None, min_depth=None, max_depth=None, sampling_invdepths=None, sampling_type='linear_invdepth'):
 
         self.feat_key = feat_key
         self.feat_key_width, self.feat_key_height = feat_key.shape[3], feat_key.shape[2]
@@ -435,7 +400,8 @@ class PlanesweepCorrelation(nn.Module):
 
         self.reset()
         self.init_coeffs()
-
+        
+        sampling_invdepths = self.get_sampling_invdepths(num_sampling_points, min_depth, max_depth, sampling_invdepths, sampling_type)
         self.get_plane_sweep_sampling_points(sampling_invdepths=sampling_invdepths)
 
         self.correlate()
@@ -474,11 +440,28 @@ class PlanesweepCorrelation(nn.Module):
                                                device=device)
             
             self.coeffs.append(coeffs)
+        
+    @torch.no_grad()
+    def get_sampling_invdepths(self, num_sampling_points=None, min_depth=None, max_depth=None, sampling_invdepths=None, sampling_type='linear_invdepth'):
+        if min_depth is not None and max_depth is not None:
+            assert sampling_invdepths is None
+            assert num_sampling_points is not None
+            assert sampling_type is not None
+            sampling_invdepths = compute_sampling_invdepths(min_depth, max_depth, num_sampling_points, sampling_type)
+        else:
+            assert num_sampling_points is None and min_depth is None and max_depth is None
+            assert sampling_invdepths is not None
+            
+        sampling_invdepths = sampling_invdepths.to(self.device)
+        assert sampling_invdepths.ndim >= 2  # (N, S) or (N, S, H) or (N, S, H, W)
+        while sampling_invdepths.ndim < 4:
+            sampling_invdepths = sampling_invdepths.unsqueeze(-1)
+            
+        return sampling_invdepths
 
     @torch.no_grad()
     def get_plane_sweep_sampling_points(self, sampling_invdepths):
 
-        sampling_invdepths = sampling_invdepths.to(self.device)
         ds = sampling_invdepths
         zs = 1./ds
 
