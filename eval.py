@@ -8,7 +8,7 @@ import os.path as osp
 import torch
 
 from rmvd import create_model, list_models, create_dataset, list_datasets, create_evaluation, list_evaluations
-from rmvd.utils import set_random_seed, writer
+from rmvd.utils import set_random_seed, writer, logging
 
 
 @torch.no_grad()
@@ -17,21 +17,22 @@ def eval(args):
     set_random_seed(args.seed)
 
     if args.model is None:
-        print(f"No model specified. Available models are: {', '.join(list_models())}")
+        logging.info(f"No model specified. Available models are: {', '.join(list_models())}")
         return
 
     if args.eval_type is None:
-        print(f"No evaluation type specified. Available evaluation types are: {', '.join(list_evaluations())}")
+        logging.info(f"No evaluation type specified. Available evaluation types are: {', '.join(list_evaluations())}")
         return
     
     if args.eval_type != "robustmvd" and args.dataset is None:  # or dataset not available
         datasets = list_datasets(dataset_type=args.eval_type, no_dataset_type=True)
-        print(f"No dataset specified. Available datasets are: {', '.join(datasets)}")
+        logging.info(f"No dataset specified. Available datasets are: {', '.join(datasets)}")
         return
     
     log_dir = args.log_dir if args.log_dir is not None else args.output
     tensorboard_log_dir = osp.join(log_dir, "tensorboard_logs")
     wandb_log_dir = osp.join(log_dir, "wandb_logs")
+    os.makedirs(args.output, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(tensorboard_log_dir, exist_ok=True)
     os.makedirs(wandb_log_dir, exist_ok=True)
@@ -40,17 +41,22 @@ def eval(args):
                          tensorboard_logs_dir=tensorboard_log_dir, 
                          wandb_logs_dir=wandb_log_dir,
                          exp_id=args.exp_id,
-                         comment=args.comment,)  # TODO: config=CONFIG
+                         comment=args.comment,)
+    log_file_path = osp.join(args.output, "log.txt")
+    logging.add_log_file(log_file_path, flush_line=True)
+
+    with open(osp.join(args.output, "cmd.txt"), 'a') as f:
+        f.write("python " + " ".join(sys.argv) + "\n")
 
     if args.eval_type != "robustmvd":
-        print()
-        print(f"Evaluating {args.model} model on dataset {args.dataset} in the {args.eval_type} evaluation setting.\n")
+        logging.info()
+        logging.info(f"Evaluating {args.model} model on dataset {args.dataset} in the {args.eval_type} evaluation setting.\n")
         dataset = create_dataset(dataset_name_or_path=args.dataset, dataset_type=args.eval_type,
                                  input_size=args.input_size)
 
     else:
-        print()
-        print(f"Evaluating {args.model} model on the Robust Multi-view Depth Benchmark.\n")
+        logging.info()
+        logging.info(f"Evaluating {args.model} model on the Robust Multi-view Depth Benchmark.\n")
         dataset = None
 
     model = create_model(name=args.model, weights=args.weights, train=False, num_gpus=args.num_gpus)
@@ -63,15 +69,14 @@ def eval(args):
                              max_source_views=args.max_source_views,
                              eval_uncertainty=args.eval_uncertainty)
 
-    with open(osp.join(args.output, "cmd.txt"), 'a') as f:
-        f.write("python " + " ".join(sys.argv) + "\n")
-
     samples = args.num_samples if args.num_samples is not None else args.samples
     qualitatives = args.qualitatives if args.qualitatives is not None else args.num_qualitatives
 
     eval(dataset=dataset, model=model, samples=samples, qualitatives=qualitatives,
          eth3d_size=args.eth3d_size, kitti_size=args.kitti_size, dtu_size=args.dtu_size, scannet_size=args.scannet_size,
          tanks_and_temples_size=args.tanks_and_temples_size, eval_name=args.eval_name, finished_iterations=args.finished_iterations,)
+    
+    logging.remove_log_file(log_file_path)
 
 
 if __name__ == '__main__':

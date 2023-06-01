@@ -4,6 +4,7 @@ from glob import glob
 from .registry import get_dataset, has_dataset
 from .compound_dataset import CompoundDataset
 from .dataset import Dataset
+from rmvd.utils import logging
 
 
 def create_dataset(dataset_name_or_path, dataset_type=None, split=None, **kwargs):
@@ -26,7 +27,7 @@ def create_dataset(dataset_name_or_path, dataset_type=None, split=None, **kwargs
                                              split=split, **kwargs)
     else:
         if len(kwargs) > 0:
-            print(f"Warning: arguments {', '.join(kwargs.keys())} were ignored when creating the dataset {dataset_name_or_path}.")
+            logging.warning(f"Warning: arguments {', '.join(kwargs.keys())} were ignored when creating the dataset {dataset_name_or_path}.")
         return _create_dataset_from_cfg(path=dataset_name_or_path)
 
 

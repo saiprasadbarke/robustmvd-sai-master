@@ -1,13 +1,14 @@
 import os
 import os.path as osp
 from typing import Optional, Sequence, Tuple, Union
+import gc
 
 import torch
 import pandas as pd
 
 from .multi_view_depth_evaluation import MultiViewDepthEvaluation
 from rmvd import create_dataset
-from rmvd.utils import prepend_level
+from rmvd.utils import prepend_level, logging
 
 
 class RobustMultiViewDepthBenchmark:
@@ -67,12 +68,14 @@ class RobustMultiViewDepthBenchmark:
 
         self.verbose = verbose
 
-        if self.verbose:
-            print(f"Initializing evaluation {self.name}.")
-
         self.out_dir = out_dir
+        self.log_file_path = osp.join(self.out_dir, "log.txt") if self.out_dir is not None else None
         if self.out_dir is not None:
             os.makedirs(self.out_dir, exist_ok=True)
+            logging.add_log_file(self.log_file_path, flush_line=True)
+
+        if self.verbose:
+            logging.info(f"Initializing evaluation {self.name}.")
 
         self.inputs = list(set(inputs + ["images"])) if inputs is not None else ["images"]
         self.alignment = alignment
@@ -83,9 +86,13 @@ class RobustMultiViewDepthBenchmark:
         self.sparse_pred = sparse_pred
 
         if self.verbose:
-            print(self)
-            print(f"Finished initializing evaluation {self.name}.")
-            print()
+            logging.info(self)
+            logging.info(f"Finished initializing evaluation {self.name}.")
+            logging.info()
+            
+    def __del__(self):
+        if self.log_file_path is not None:
+            logging.remove_log_file(self.log_file_path)
 
     @property
     def name(self):
@@ -152,7 +159,7 @@ class RobustMultiViewDepthBenchmark:
         results = []
 
         for dataset_name, input_size in datasets:
-            print(f"Running evaluation on {dataset_name}.")
+            logging.info(f"Running evaluation on {dataset_name}.")
 
             if self.out_dir is not None:
                 out_dir = osp.join(self.out_dir, dataset_name)
@@ -172,7 +179,8 @@ class RobustMultiViewDepthBenchmark:
                           eval_name=eval_name, finished_iterations=finished_iterations)
             result = prepend_level(result, "dataset", dataset_name, axis=1)
             results.append(result)
-            print()
+            logging.info()
+            del eval ; gc.collect()
 
         results = pd.concat(results, axis=1)
         self._output_results(results, self.out_dir)
@@ -183,14 +191,14 @@ class RobustMultiViewDepthBenchmark:
         results = results.loc[:, (slice(None), 'best')].droplevel(level=1, axis=1).mean()
 
         if self.verbose:
-            print()
-            print("Robust MVD Benchmark Results:")
-            print(results)
+            logging.info()
+            logging.info("Robust MVD Benchmark Results:")
+            logging.info(results)
 
         if out_dir is not None:
 
             if self.verbose:
-                print(f"Writing Robust MVD Benchmark results to {out_dir}.")
+                logging.info(f"Writing Robust MVD Benchmark results to {out_dir}.")
 
             results.to_csv(osp.join(out_dir, "results.csv"))
             results.to_pickle(osp.join(out_dir, "results.pickle"))

@@ -6,7 +6,7 @@ import numpy as np
 
 from ..registry import register_model
 from ..helpers import build_model_with_cfg
-from rmvd.utils import get_path, get_torch_model_device, to_numpy, to_torch, select_by_index, exclude_index
+from rmvd.utils import get_path, get_torch_model_device, to_numpy, to_torch, select_by_index, logging
 from rmvd.data.transforms import ResizeInputs
 
 
@@ -32,7 +32,7 @@ class Monodepth2_Wrapped(nn.Module):
             f"from https://github.com/nianticlabs/monodepth2 and extract it to" \
             f"{osp.join(repo_path, 'models')}"
 
-        print(f"Using model weights from {encoder_weights_path} and {decoder_weights_path}.")
+        logging.info(f"Using model weights from {encoder_weights_path} and {decoder_weights_path}.")
         encoder_weights = torch.load(encoder_weights_path)
         filtered_encoder_weights = {k: v for k, v in encoder_weights.items() if k in self.encoder.state_dict()}
         self.encoder.load_state_dict(filtered_encoder_weights)

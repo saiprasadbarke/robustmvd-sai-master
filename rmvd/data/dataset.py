@@ -9,6 +9,7 @@ import numpy as np
 import pytoml
 
 import rmvd.utils as utils
+from rmvd.utils import logging
 from .transforms import ResizeInputs, ResizeTargets
 from .updates import Updates, PickledUpdates
 from .layout import Layout
@@ -35,7 +36,7 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         self._init_root(root)
 
         if self.verbose:
-            print(f"Initializing dataset {self.name} from {self.root}")
+            logging.info(f"Initializing dataset {self.name} from {self.root}")
 
         self.input_resize = ResizeInputs(size=input_size) if input_size is not None else None
         self.target_resize = ResizeTargets(size=target_size) if target_size is not None else None
@@ -52,15 +53,15 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         self._init_updates(updates, update_strict)
 
         if self.verbose:
-            print(f"\tNumber of samples: {len(self)}")
+            logging.info(f"\tNumber of samples: {len(self)}")
             if len(self.updates) > 0:
-                print(f"\tUpdates: {', '.join([update.name for update in self.updates])}")
+                logging.info(f"\tUpdates: {', '.join([update.name for update in self.updates])}")
             if self.input_resize is not None:
-                print(f"\tImage resolution (height, width): ({input_size[0]}, {input_size[1]})")
+                logging.info(f"\tImage resolution (height, width): ({input_size[0]}, {input_size[1]})")
             if self.target_resize is not None:
-                print(f"\Target resolution (height, width): ({target_size[0]}, {target_size[1]})")
-            print(f"Finished initializing dataset {self.name}.")
-            print()
+                logging.info(f"\Target resolution (height, width): ({target_size[0]}, {target_size[1]})")
+            logging.info(f"Finished initializing dataset {self.name}.")
+            logging.info()
 
     @property
     def name(self):
@@ -97,7 +98,7 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
     def _init_samples_from_list(self):
         sample_list_path = _get_sample_list_path(self.name)
         if self.verbose:
-            print("\tInitializing samples from list at {}".format(sample_list_path))
+            logging.info("\tInitializing samples from list at {}".format(sample_list_path))
         with open(sample_list_path, 'rb') as sample_list:
             self.samples = pickle.load(sample_list)
 
@@ -105,11 +106,11 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
         path = _get_sample_list_path(self.name) if path is None else path
         if osp.isdir(osp.split(path)[0]):
             if self.verbose:
-                print(f"Writing sample list to {path}")
+                logging.info(f"Writing sample list to {path}")
             with open(path, 'wb') as file:
                 pickle.dump(self.samples, file)
         elif self.verbose:
-            print(f"Could not write sample list to {path}")
+            logging.info(f"Could not write sample list to {path}")
 
     def _init_updates(self, updates, update_strict=False):
 
@@ -209,8 +210,8 @@ class Dataset(torch.utils.data.Dataset, metaclass=abc.ABCMeta):
                 break
 
         end = time.time()
-        print("Total time for loading {} batches: %1.4fs.".format(num_batches) % (end - start))
-        print("Mean time per batch: %1.4fs." % ((end - start)/num_batches))
+        logging.info("Total time for loading {} batches: %1.4fs.".format(num_batches) % (end - start))
+        logging.info("Mean time per batch: %1.4fs." % ((end - start)/num_batches))
 
     @classmethod
     def write_config(cls, path, dataset_cls_name, augmentations=None, input_size=None, to_torch=False, updates=None,

@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from .utils import mae, pointwise_ae
 from .registry import register_loss
+from rmvd.utils import logging
 
 
 class MultiScaleMAE(nn.Module):
@@ -14,7 +15,7 @@ class MultiScaleMAE(nn.Module):
         self.verbose = verbose
 
         if self.verbose:
-            print(f"Initializing {self.name} loss.")
+            logging.info(f"Initializing {self.name} loss.")
 
         self.weight_decay = weight_decay
         self.gt_interpolation = gt_interpolation
@@ -27,12 +28,12 @@ class MultiScaleMAE(nn.Module):
         self.reg_params = self.get_regularization_parameters(model)  # TODO: I think there is a better way in pytorch to do this
 
         if self.verbose:
-            print(f"\tWeight decay: {self.weight_decay}")
-            print(f"\tGT interpolation: {self.gt_interpolation}")
-            print(f"\tModality: {self.modality}")
-            print(f"\tLoss weights: {self.loss_weights}")
-            print(f"Finished initializing {self.name} loss.")
-            print()
+            logging.info(f"\tWeight decay: {self.weight_decay}")
+            logging.info(f"\tGT interpolation: {self.gt_interpolation}")
+            logging.info(f"\tModality: {self.modality}")
+            logging.info(f"\tLoss weights: {self.loss_weights}")
+            logging.info(f"Finished initializing {self.name} loss.")
+            logging.info()
 
     @property
     def name(self):
@@ -47,10 +48,10 @@ class MultiScaleMAE(nn.Module):
                 reg_params.append((name, param))
 
         if self.verbose:
-            print(f"\tApplying regularization loss with weight decay {self.weight_decay} on:")
+            logging.info(f"\tApplying regularization loss with weight decay {self.weight_decay} on:")
             for i, val in enumerate(reg_params):
                 name, param = val
-                print(f"\t\t#{i} {name}: {param.shape} ({param.numel()})")
+                logging.info(f"\t\t#{i} {name}: {param.shape} ({param.numel()})")
 
         return reg_params
 
