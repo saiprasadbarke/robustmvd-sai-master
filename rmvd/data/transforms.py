@@ -110,13 +110,13 @@ class ResizeTargets:
         # resize depth:
         if "depth" in sample and sample["depth"] is not None:
             depth = sample["depth"]
-            depth = resize(depth, list(depth.shape[:-2]) + [ht, wd], order=self.__interpolation_order)
+            depth = resize(depth, list(depth.shape[:-2]) + [ht, wd], order=self.__interpolation_order, anti_aliasing=False)
             sample["depth"] = depth
         
         # resize invdepth:
         if "invdepth" in sample and sample["invdepth"] is not None:
             invdepth = sample["invdepth"]
-            invdepth = resize(invdepth, list(invdepth.shape[:-2]) + [ht, wd], order=self.__interpolation_order)
+            invdepth = resize(invdepth, list(invdepth.shape[:-2]) + [ht, wd], order=self.__interpolation_order, anti_aliasing=False)
             sample["invdepth"] = invdepth
         
         if "depth_range" in sample and sample["depth_range"] is not None:

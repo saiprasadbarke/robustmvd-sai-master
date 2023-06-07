@@ -97,3 +97,8 @@ class SingleScaleMAE(nn.Module):
 @register_loss
 def mvsnet_loss(**kwargs):
     return SingleScaleMAE(weight_decay=0., gt_interpolation="bilinear", modality="depth", weight_by_sampling_interval=True, **kwargs)
+
+
+@register_loss
+def dpt_loss(**kwargs):
+    return SingleScaleMAE(weight_decay=0., gt_interpolation="bilinear", modality="invdepth", weight_by_sampling_interval=False, **kwargs)

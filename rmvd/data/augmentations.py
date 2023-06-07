@@ -42,6 +42,17 @@ def supervised_monodepth2_augmentations(**kwargs):
     transform = torchvision.transforms.Compose(transforms)
     return transform
 
+@register_augmentation
+def dpt_augmentations(**kwargs):
+    transforms = [
+        ResizeInputs(size=(192, 640)),
+        ResizeTargets(size=(192, 640)),
+        NormalizeImagesToMinMax(min_val=0., max_val=1.),
+        NormalizeImagesByShiftAndScale(shift=[0.485, 0.456, 0.406], scale=[0.229, 0.224, 0.225]),
+    ]
+    transform = torchvision.transforms.Compose(transforms)
+    return transform
+
 
 @register_augmentation
 def mvsnet_augmentations(**kwargs):
