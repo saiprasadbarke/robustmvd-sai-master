@@ -495,7 +495,7 @@ class MultiViewDepthEvaluation:
             pred['least_squares_scale'] = scale
             pred['least_squares_shift'] = shift
 
-        if isinstance(self.clip_pred_depth, tuple):
+        if isinstance(self.clip_pred_depth, tuple) or isinstance(self.clip_pred_depth, list):
             pred_depth = np.clip(pred_depth, self.clip_pred_depth[0], self.clip_pred_depth[1]) * pred_mask
         elif self.clip_pred_depth:
             pred_depth = np.clip(pred_depth, 0.1, 100) * pred_mask

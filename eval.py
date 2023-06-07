@@ -67,7 +67,8 @@ def eval(args):
                              view_ordering=args.view_ordering,
                              min_source_views=args.min_source_views,
                              max_source_views=args.max_source_views,
-                             eval_uncertainty=args.eval_uncertainty)
+                             eval_uncertainty=args.eval_uncertainty,
+                             clip_pred_depth=args.clipping if args.clipping is not None else True)
 
     samples = args.num_samples if args.num_samples is not None else args.samples
     qualitatives = args.qualitatives if args.qualitatives is not None else args.num_qualitatives
@@ -120,6 +121,8 @@ if __name__ == '__main__':
                         help='Index of sample where qualitatives should be output.')
 
     parser.add_argument('--eval_uncertainty', action='store_true', help='Evaluate predicted depth uncertainty.')
+    parser.add_argument('--clipping', type=float, nargs=2, help="Clipping range for depth values in the format (min_depth, max_depth) in meters. " 
+                                                                "If not provided, clip to default range of (0.1m, 100m).")
     
     parser.add_argument('--log_dir', help="Path to folder for tensorboard and wandb logs. Optional. Default: use output dir.")
     parser.add_argument('--no_tensorboard', action='store_true', help='Do not log to tensorboard. Default: do log.')
