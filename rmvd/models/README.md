@@ -55,11 +55,12 @@ This is the Robust MVD Baseline Model presented in the publication
 "A Benchmark and a Baseline for Robust Depth Estimation" by Schröppel et al., but trained for 5M iterations instead
 of the 600k iterations in the paper. The longer training slightly improves results.
 
-### `monodepth2_mono_stereo_1024x320_wrapped`
-This is the "Monodepth2 (1024x320)" model presented in the publication 
+
+### `monodepth2_mono_stereo_wrapped`
+This is the "Monodepth2 MS-trained" model presented in the publication 
 "Digging into Self-Supervised Monocular Depth Estimation" by Godard et al. 
 The model is wrapped around the original implementation from <https://github.com/nianticlabs/monodepth2>, where it is 
-indicated as `mono+stereo_1024x320`.
+indicated as `mono+stereo_640x192`.
 
 #### Setup:
 From the directory of this `README` file, execute the script `scripts/setup_monodepth2.sh` and specify the local
@@ -74,24 +75,62 @@ this `README`).
 It is not necessary to install additional dependencies.
 
 #### Misc:
+The model is applied at a fixed input size of `width=640` and `height=192`. It therefore does not make sense to load
+data at a specific downsampled resolution. Thus, don't use the `input_size` parameters of `Dataset` classes and of the
+`eval.py` and `inference.py` scripts, when using this model.
+
+#### Reproducing the results of the original publication:
+In the original publication, the model is reported to have an Abs Rel of `0.080` on the KITTI Eigen split with the 
+improved ground truth depths (see Table 7 in the paper). In the codebase of the original implementation, this result 
+can be reproduced via:
+```python
+python evaluate_depth.py --eval_mono --load_weights_folder path/to/monostereo_640x192/weights  --eval_split eigen_benchmark
+```
+(Even tough, it seems like an error that the model is evaluated with the `--eval_mono` flag.)
+
+Within `rmvd`, this result can be reproduced as follows:
+```python
+python eval.py --output /tmp/eval_output --model monodepth2_mono_stereo_wrapped --dataset kitti.eigen_dense_depth_test.mvd --eval_type mvd --max_source_views 0 --clipping 1e-3 80 --alignment median
+```
+This command gives an Abs Rel of `8.11%` (i.e. `0.0811`).
+
+### `monodepth2_mono_stereo_1024x320_wrapped`
+This is the "Monodepth2 (1024x320) MS-trained" model presented in the publication 
+"Digging into Self-Supervised Monocular Depth Estimation" by Godard et al. 
+The model is wrapped around the original implementation from <https://github.com/nianticlabs/monodepth2>, where it is 
+indicated as `mono+stereo_1024x320`.
+
+#### Setup:
+Same as for the `monodepth2_mono_stereo_wrapped` model.
+
+#### Misc:
 The model is applied at a fixed input size of `width=1024` and `height=320`. It therefore does not make sense to load
 data at a specific downsampled resolution. Thus, don't use the `input_size` parameters of `Dataset` classes and of the
 `eval.py` and `inference.py` scripts, when using this model.
 
-
-### `monodepth2_mono_stereo_640x192_wrapped`
-This is the "Monodepth2" model presented in the publication 
-"Digging into Self-Supervised Monocular Depth Estimation" by Godard et al. 
-The model is wrapped around the original implementation from <https://github.com/nianticlabs/monodepth2>, where it is 
-indicated as `mono+stereo_640x192`.
+### `monodepth2_postuncertainty_mono_stereo_wrapped`
+This is the "Monodepth2-Post MS-trained" model presented in the publication 
+"On the Uncertainty of Self-supervised Monocular Depth Estimation" by Poggi et al. 
+The model is wrapped around the implementation from <https://github.com/nianticlabs/monodepth2>, where it is 
+indicated as `mono+stereo_640x192`. It uses the "Post" uncertainty estimation (via image flipping) as described by Poggi et al.
 
 #### Setup:
-Same as for the `monodepth2_mono_stereo_1024x320_wrapped` model.
+Same as for the `monodepth2_mono_stereo_wrapped` model.
 
 #### Misc:
 The model is applied at a fixed input size of `width=640` and `height=192`. It therefore does not make sense to load
 data at a specific downsampled resolution. Thus, don't use the `input_size` parameters of `Dataset` classes and of the
 `eval.py` and `inference.py` scripts, when using this model.
+
+#### Reproducing the results of the original publication:
+In the original publication from Poggi et al., the model is reported to have an Abs Rel of `0.082` and AUSE of `0.036`
+on the KITTI Eigen split with the improved ground truth depths (see Table 3 in the paper). 
+
+Within `rmvd`, this result can be reproduced as follows:
+```python
+python eval.py --output /tmp/eval_output --model monodepth2_postuncertainty_mono_stereo_wrapped --dataset kitti.eigen_dense_depth_test.mvd --eval_type mvd --max_source_views 0 --clipping 1e-3 80 --eval_uncertainty
+```
+This command gives an Abs Rel of `8.31%` (i.e. `0.0831`) and an unnormalized AUSE of `0.038`.
 
 ### `mvsnet_pl_wrapped`
 This is an unofficial implementation of the MVSNet model presented in the publication 
