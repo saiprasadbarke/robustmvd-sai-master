@@ -42,9 +42,14 @@ can be found in the respective model descriptions below.
 
 --
 
-## Available models
+## Available native models
 
-The following provides an overview of all available models including their respective setup instructions.
+The following provides an overview of all available native models. 
+
+To train these models, use the commands from the `train_all.sh` script. The weights that are used when these 
+models are used with `pretrained=True`, are the weights that are obtained after training with the `train_all.sh` script.
+
+To evaluate these models with the provided pretrained weights, use the commands from the `eval_all.sh` script.
 
 ### `robust_mvd`
 This is the Robust MVD Baseline Model presented in the publication 
@@ -55,6 +60,11 @@ This is the Robust MVD Baseline Model presented in the publication
 "A Benchmark and a Baseline for Robust Depth Estimation" by Schröppel et al., but trained for 5M iterations instead
 of the 600k iterations in the paper. The longer training slightly improves results.
 
+## Available wrapped models
+
+The following provides an overview of all available wrapped models including their respective setup instructions.
+
+To evaluate these models, use the commands from the `eval_all.sh` script.
 
 ### `monodepth2_mono_stereo_wrapped`
 This is the "Monodepth2 MS-trained" model presented in the publication 
