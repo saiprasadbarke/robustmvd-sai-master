@@ -588,6 +588,7 @@ class MultiViewDepthEvaluation:
                                              pbar_desc="            Prediction sparsification")
         sparsification_errors = sparsification_pred - sparsification_oracle
         ause = sparsification_errors.sum(skipna=False) / 100
+        ause_unnormalized = ause * m_rel_ae(gt=gt_depth, pred=pred_depth, mask=pred_mask)
         ause = ause if np.isfinite(ause) else np.nan
 
         self.sparsification_curves.loc[(self.cur_sample_idx, "oracle"), :] = sparsification_oracle
@@ -597,7 +598,7 @@ class MultiViewDepthEvaluation:
         if self.verbose:
             logging.info(f"\t\t\tAUSE={ause}.")
 
-        return {'ause': ause}
+        return {'ause': ause, 'ause_unnormalized': ause_unnormalized}
 
     def _output_results(self):
 
