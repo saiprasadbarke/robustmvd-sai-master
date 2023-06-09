@@ -1,0 +1,27 @@
+[eth3d]
+    root = '/work/dlclarge1/barkes-barke-master/data/eth3d/'
+
+[kitti]
+    root = '/work/dlclarge1/barkes-barke-master/data/kitti/'
+
+[dtu]
+    root = '/work/dlclarge1/barkes-barke-master/data/dtu/'
+
+[scannet]
+    root = '/work/dlclarge1/barkes-barke-master/data/scannet/'
+
+[tanks_and_temples]
+    root = '/work/dlclarge1/barkes-barke-master/data/tanks_and_temples/'
+
+[blendedmvs]
+    root = '/work/dlclarge1/barkes-barke-master/data/blendedmvs/'
+
+[flyingthings3d]
+    [flyingthings3d.train]
+        root = '/work/dlclarge1/barkes-barke-master/data/flyingthings3d_converted/TRAIN/'
+    [flyingthings3d.test]
+        root = '/work/dlclarge1/barkes-barke-master/data/flyingthings3d_converted/TEST/'
+
+[staticthings3d]
+    [staticthings3d.train]
+        root = '/work/dlclarge1/barkes-barke-master/data/staticthings3d_converted/TRAIN/'
