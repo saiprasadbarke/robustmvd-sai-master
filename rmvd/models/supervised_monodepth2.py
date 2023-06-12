@@ -150,7 +150,7 @@ class SupervisedMonodepth2(nn.Module):
         device = get_torch_model_device(self)
 
         image = select_by_index(images, keyview_idx)
-        resized = UpscaleInputsToNextMultipleOf(8)({'images': [image]})
+        resized = UpscaleInputsToNextMultipleOf(32)({'images': [image]})
         image = resized['images'][0]
 
         image = image / 255
@@ -182,7 +182,7 @@ class SupervisedMonodepth2(nn.Module):
 
 @register_model(trainable=True)
 def supervised_monodepth2(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
-    assert pretrained is False, "Pretrained weights are not available for this model."
+    assert not (pretrained and weights is None), "Pretrained weights are not available for this model."
     # weights = pretrained_weights if (pretrained and weights is None) else weights
     model = build_model_with_cfg(model_cls=SupervisedMonodepth2, weights=weights, train=train, num_gpus=num_gpus, 
                                  num_layers=18, init_resnet_with_imagenet_pretrained=True)

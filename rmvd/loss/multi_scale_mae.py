@@ -97,4 +97,4 @@ class MultiScaleMAE(nn.Module):
 
 @register_loss
 def supervised_monodepth2_loss(**kwargs):
-    return MultiScaleMAE(weight_decay=1e-4, gt_interpolation="nearest", modality="invdepth", **kwargs)
+    return MultiScaleMAE(weight_decay=0., gt_interpolation="nearest", modality="invdepth", **kwargs)

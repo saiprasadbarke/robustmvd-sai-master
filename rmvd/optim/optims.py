@@ -23,6 +23,14 @@ def flownet_scheduler(optimizer, **_):
     gamma = 0.5
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_intervals, gamma=gamma)
     return scheduler
+    
+
+@register_scheduler
+def monodepth2_scheduler(optimizer, **_):
+    lr_intervals = [48000]
+    gamma = 0.1
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_intervals, gamma=gamma)
+    return scheduler
 
 
 @register_scheduler
