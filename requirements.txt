@@ -12,3 +12,7 @@ pyqt5
 dill
 easydict
 wandb
+git+https://github.com/pschroeppel/itypes.git
+git+https://github.com/pschroeppel/iutils.git
+git+https://github.com/pschroeppel/iviz.git
+git+https://github.com/pschroeppel/imetrics.git
