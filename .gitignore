@@ -1,6 +1,9 @@
 rmvd/data/kitti_splits
 rmvd/data/kitti_utils
 rmvd/data/kitti_internal.py
+rmvd/data/sample_lists/blendedmvs.robust_mvd.mvd.pickle
+rmvd/data/sample_lists/dtu.robust_mvd.mvd.pickle
+rmvd/data/sample_lists/dtu.train_mvsnet.mvd.pickle
 *.egg-info/
 *.pyc
 /.idea/

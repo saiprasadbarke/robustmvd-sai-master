@@ -550,3 +550,26 @@ class DTUMvsnetTrain(DTU):
             layouts=layouts,
             **kwargs,
         )
+
+
+@register_dataset
+class DTURobust_MVD(DTU):
+    split = "robust_mvd"
+    dataset_type = "mvd"
+
+    def __init__(self, root=None, layouts=None, **kwargs):
+        root = root if root is not None else self._get_path("dtu", "root")
+        scene_names = DTU_TRAIN_SCENES
+        default_layouts = [
+            MVDUnstructuredDefaultLayout("default", num_views=11, max_views=4),
+            AllImagesLayout("all_images", num_views=11),
+        ]
+        layouts = default_layouts + layouts if layouts is not None else default_layouts
+
+        super().__init__(
+            scene_names=scene_names,
+            num_source_views=2,
+            root=root,
+            layouts=layouts,
+            **kwargs,
+        )
