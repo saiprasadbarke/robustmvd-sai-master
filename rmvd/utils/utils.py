@@ -5,9 +5,9 @@ import random
 
 import numpy as np
 import torch
-from torch._six import string_classes
+#from torch._six import string_classes
 import pytoml
-
+string_classes = (str, bytes)
 
 def set_random_seed(seed=None, use_gpu=True):
     if seed is None:

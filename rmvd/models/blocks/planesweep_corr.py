@@ -65,7 +65,7 @@ def warp(x, offset=None, grid=None, padding_mode='border'):  # based on PWC-Net 
         with torch.no_grad():
             device = x.get_device()
 
-            yy, xx = torch.meshgrid(torch.arange(h_ref), torch.arange(w_ref))  # both (h_ref, w_ref)
+            yy, xx = torch.meshgrid(torch.arange(h_ref), torch.arange(w_ref), indexing="ij")  # both (h_ref, w_ref)
             xx = xx.to(device)
             yy = yy.to(device)
             xx = (xx + 0.5).unsqueeze_(0).unsqueeze_(0)  # (1, 1, h_ref, w_ref)
