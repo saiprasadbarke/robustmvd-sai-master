@@ -30,10 +30,7 @@ def _get_default_font(size=None):
 
 
 def _get_cmap(cmap_name):
-    if cmap_name == 'turbo':
-        cmap = turbo_cmap
-    else:
-        cmap = plt.get_cmap(cmap_name)
+    cmap = plt.get_cmap(cmap_name)
     return cmap
 
 
@@ -76,7 +73,7 @@ def _get_draw_text(text, label, text_off, image_range_text, image_range_text_off
     
     if label is not None:
         draw_text += str(label)
-        if (not text_off) or (not image_range_text_off):
+        if (not text_off and text is not None) or (not image_range_text_off):
             draw_text += "\n"
     
     if text is not None and not text_off:

@@ -629,7 +629,7 @@ class DPTDepthModel(DPT):
 
 @register_model(trainable=True)
 def dpt_large_kitti(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
-    assert pretrained is False, "Pretrained weights are not available for this model."
+    assert not (pretrained and weights is None), "Pretrained weights are not available for this model."
     # weights = pretrained_weights if (pretrained and weights is None) else weights
     model = build_model_with_cfg(model_cls=DPTDepthModel, weights=weights, train=train, num_gpus=num_gpus, backbone="vitl16_384")
     return model

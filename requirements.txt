@@ -1,9 +1,9 @@
 torch==1.9.0
 torchvision
-numpy
+numpy==1.21.6
 pillow
 matplotlib
-pandas
+pandas==1.3.2
 pytoml
 tqdm
 opencv-python
@@ -12,3 +12,7 @@ pyqt5
 dill
 easydict
 wandb
+git+https://github.com/pschroeppel/itypes.git
+git+https://github.com/pschroeppel/iutils.git
+git+https://github.com/pschroeppel/iviz.git
+git+https://github.com/pschroeppel/imetrics.git

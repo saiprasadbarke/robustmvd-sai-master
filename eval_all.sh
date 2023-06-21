@@ -55,11 +55,14 @@ python eval.py --eval_type robustmvd --model robust_mvd --inputs poses intrinsic
 # robust_mvd_5M model:
 python eval.py --eval_type robustmvd --model robust_mvd_5M --inputs poses intrinsics --output ${OUT_BASE}/robust_mvd_5M --num_gpus ${NUM_GPUS} --eth3d_size 768 1152 --kitti_size 384 1280 --dtu_size 896 1216 --scannet_size 448 640 --tanks_and_temples_size 704 1280 ${num_samples} ${eval_uncertainty}
 
+# monodepth2_mono_stereo_wrapped model:
+python eval.py --eval_type robustmvd --model monodepth2_mono_stereo_wrapped --output ${OUT_BASE}/monodepth2_mono_stereo_wrapped --num_gpus ${NUM_GPUS} --max_source_views 0 --alignment median ${num_samples}
+
 # monodepth2_mono_stereo_1024x320_wrapped model:
 python eval.py --eval_type robustmvd --model monodepth2_mono_stereo_1024x320_wrapped --output ${OUT_BASE}/monodepth2_mono_stereo_1024x320_wrapped --num_gpus ${NUM_GPUS} --max_source_views 0 --alignment median ${num_samples}
 
-# monodepth2_mono_stereo_640x192_wrapped model:
-python eval.py --eval_type robustmvd --model monodepth2_mono_stereo_640x192_wrapped --output ${OUT_BASE}/monodepth2_mono_stereo_640x192_wrapped --num_gpus ${NUM_GPUS} --max_source_views 0 --alignment median ${num_samples}
+# monodepth2_postuncertainty_mono_stereo_wrapped model:
+python eval.py --eval_type robustmvd --model monodepth2_postuncertainty_mono_stereo_wrapped --output ${OUT_BASE}/monodepth2_postuncertainty_mono_stereo_wrapped --num_gpus ${NUM_GPUS} --max_source_views 0 --alignment median ${num_samples} ${eval_uncertainty}
 
 # mvsnet_pl_wrapped model:
 python eval.py --eval_type robustmvd --model mvsnet_pl_wrapped --inputs poses intrinsics depth_range --output ${OUT_BASE}/mvsnet_pl_wrapped/known_depth_range --eval_name known_depth_range --num_gpus ${NUM_GPUS} --eth3d_size 768 1152 --kitti_size 384 1280 --dtu_size 896 1216 --scannet_size 448 640 --tanks_and_temples_size 704 1280 ${num_samples} ${eval_uncertainty}
