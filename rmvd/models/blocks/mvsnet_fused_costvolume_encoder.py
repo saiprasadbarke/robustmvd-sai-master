@@ -14,9 +14,18 @@ class Conv3d(nn.Module):
         Default momentum for batch normalization is set to be 0.01,
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1,
-                 relu=True, bn=True, bn_momentum=0.1, init_method="xavier", **kwargs):
-
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        stride=1,
+        relu=True,
+        bn=True,
+        bn_momentum=0.1,
+        init_method="xavier",
+        **kwargs
+    ):
         super(Conv3d, self).__init__()
 
         self.out_channels = out_channels
@@ -24,8 +33,14 @@ class Conv3d(nn.Module):
         assert stride in [1, 2]
         self.stride = stride
 
-        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size, stride=stride,
-                              bias=(not bn), **kwargs)
+        self.conv = nn.Conv3d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            bias=(not bn),
+            **kwargs
+        )
         self.bn = nn.BatchNorm3d(out_channels, momentum=bn_momentum) if bn else None
         self.relu = relu
 
@@ -44,14 +59,26 @@ class MVSNetFusedCostvolumeEncoder(nn.Module):
 
         self.conv0 = Conv3d(in_channels, base_channels, padding=1, bn=batch_norm)
 
-        self.conv1 = Conv3d(base_channels, base_channels * 2, stride=2, padding=1, bn=batch_norm)
-        self.conv2 = Conv3d(base_channels * 2, base_channels * 2, padding=1, bn=batch_norm)
+        self.conv1 = Conv3d(
+            base_channels, base_channels * 2, stride=2, padding=1, bn=batch_norm
+        )
+        self.conv2 = Conv3d(
+            base_channels * 2, base_channels * 2, padding=1, bn=batch_norm
+        )
 
-        self.conv3 = Conv3d(base_channels * 2, base_channels * 4, stride=2, padding=1, bn=batch_norm)
-        self.conv4 = Conv3d(base_channels * 4, base_channels * 4, padding=1, bn=batch_norm)
+        self.conv3 = Conv3d(
+            base_channels * 2, base_channels * 4, stride=2, padding=1, bn=batch_norm
+        )
+        self.conv4 = Conv3d(
+            base_channels * 4, base_channels * 4, padding=1, bn=batch_norm
+        )
 
-        self.conv5 = Conv3d(base_channels * 4, base_channels * 8, stride=2, padding=1, bn=batch_norm)
-        self.conv6 = Conv3d(base_channels * 8, base_channels * 8, padding=1, bn=batch_norm)
+        self.conv5 = Conv3d(
+            base_channels * 4, base_channels * 8, stride=2, padding=1, bn=batch_norm
+        )
+        self.conv6 = Conv3d(
+            base_channels * 8, base_channels * 8, padding=1, bn=batch_norm
+        )
 
     def forward(self, fused_corr):
         fused_corr = torch.permute(fused_corr, (0, 2, 1, 3, 4))  # NCSHW
@@ -65,13 +92,13 @@ class MVSNetFusedCostvolumeEncoder(nn.Module):
         conv6 = self.conv6(conv5)
 
         all_enc = {
-            '3d_conv0': conv0,
-            '3d_conv1': conv1,
-            '3d_conv2': conv2,
-            '3d_conv3': conv3,
-            '3d_conv4': conv4,
-            '3d_conv5': conv5,
-            '3d_conv6': conv6,
+            "3d_conv0": conv0,
+            "3d_conv1": conv1,
+            "3d_conv2": conv2,
+            "3d_conv3": conv3,
+            "3d_conv4": conv4,
+            "3d_conv5": conv5,
+            "3d_conv6": conv6,
         }
 
         return all_enc, conv6

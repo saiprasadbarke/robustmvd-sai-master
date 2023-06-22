@@ -10,7 +10,7 @@ from .blocks.mvsnet_encoder import MVSNetEncoder
 from .blocks.planesweep_corr import PlanesweepCorrelation
 from .blocks.variance_costvolume_fusion import VarianceCostvolumeFusion
 from .blocks.mvsnet_fused_costvolume_encoder import MVSNetFusedCostvolumeEncoder
-from .blocks.mvsnet_decoder import MVSNetDecoder
+from .blocks.dispnet_decoder import DispnetDecoder
 
 from rmvd.utils import (
     get_torch_model_device,
@@ -27,7 +27,7 @@ from rmvd.data.transforms import (
 )
 
 
-class MVSNet(nn.Module):
+class MVSNetDispnetDecoder(nn.Module):
     def __init__(self, num_sampling_points=128, sampling_type="linear_depth"):
         super().__init__()
 
@@ -40,11 +40,11 @@ class MVSNet(nn.Module):
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
             in_channels=32, base_channels=8, batch_norm=True
         )
-        self.decoder = MVSNetDecoder(in_channels=64)
+        self.decoder = DispnetDecoder(in_channels=2048, arch="mvsnet")
 
         self.init_weights()
 
-    def init_weights(self):  # TODO
+    def init_weights(self):
         for m in self.modules():
             if (
                 isinstance(m, nn.Conv2d)
@@ -80,13 +80,13 @@ class MVSNet(nn.Module):
         else:
             min_depth, max_depth = depth_range
 
-        print(f"images_key: {image_key.shape}")
+        # print(f"images_key: {image_key.shape}")
         all_enc_key, enc_key = self.encoder(image_key)
-        print(f"enc_key: {enc_key.shape}")
-        print({f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()})
-        print(f"images_source: {images_source[0].shape}")
+        # print(f"enc_key: {enc_key.shape}")
+        # print({f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()})
+        # print(f"images_source: {images_source[0].shape}")
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
-        print(f"enc_sources: {enc_sources[0].shape}")
+        # print(f"enc_sources: {enc_sources[0].shape}")
         corrs, masks, sampling_invdepths = self.corr_block(
             feat_key=enc_key,
             intrinsics_key=intrinsics_key,
@@ -100,23 +100,24 @@ class MVSNet(nn.Module):
         )
 
         fused_corr, _ = self.fusion_block(feat_key=enc_key, corrs=corrs, masks=masks)
-        print(f"fused_corr: {fused_corr.shape}")
+        # print(f"fused_corr: {fused_corr.shape}")
         all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
-        print(f"enc_fused: {enc_fused.shape}")
-        print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
+        # print(f"enc_fused: {enc_fused.shape}")
+        # print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
         dec = self.decoder(
             enc_fused=enc_fused,
-            sampling_invdepths=sampling_invdepths,
             all_enc={**all_enc_key, **all_enc_fused},
         )
 
         pred = {
-            "depth": dec["depth"],
-            "depth_uncertainty": dec["uncertainty"],
+            "depth": 1 / (dec["invdepth"] + 1e-9),
+            "depth_uncertainty": torch.exp(dec["invdepth_log_b"])
+            / (dec["invdepth"] + 1e-9),
         }
-
         aux = dec
-
+        aux["depth"] = pred["depth"]
+        aux["depth_uncertainty"] = pred["depth_uncertainty"]
+        aux["sampling_invdepths"] = sampling_invdepths
         return pred, aux
 
     def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range=None):
@@ -152,13 +153,15 @@ class MVSNet(nn.Module):
 
 
 @register_model
-def mvsnet_blendedmvs(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
+def mvsnet_dispnetdecoder(
+    pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
+):
     assert not (
         pretrained and weights is None
     ), "Pretrained weights are not available for this model."
     # weights = pretrained_weights if (pretrained and weights is None) else weights
     model = build_model_with_cfg(
-        model_cls=MVSNet,
+        model_cls=MVSNetDispnetDecoder,
         weights=weights,
         train=train,
         num_gpus=num_gpus,
