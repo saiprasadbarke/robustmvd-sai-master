@@ -45,6 +45,7 @@ def supervised_monodepth2_augmentations(**kwargs):
 @register_augmentation
 def dpt_augmentations(**kwargs):
     transforms = [
+        ColorJitter(saturation=(0.3, 1.5), contrast=(0.3, 1.5), brightness=(0.8, 1.2), hue=0.1),
         ResizeInputs(size=(192, 640)),
         ResizeTargets(size=(192, 640)),
         NormalizeImagesToMinMax(min_val=0., max_val=1.),

@@ -11,6 +11,13 @@ def adam(model, lr, **_):
 
 
 @register_optimizer
+def adamw(model, lr, **_):
+    params = [p for p in model.parameters() if p.requires_grad]
+    optim = torch.optim.AdamW(params, lr=lr)
+    return optim
+
+
+@register_optimizer
 def rmsprop(model, lr, **_):
     params = [p for p in model.parameters() if p.requires_grad]
     optim = torch.optim.RMSprop(params, lr=lr, alpha=0.9)
@@ -40,3 +47,8 @@ def mvsnet_scheduler(optimizer, **_):
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=gamma)
     # TODO: try exponential decay LR
     return scheduler
+
+
+@register_scheduler
+def constant_lr_scheduler(optimizer, **_):
+    return torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=1.0)
