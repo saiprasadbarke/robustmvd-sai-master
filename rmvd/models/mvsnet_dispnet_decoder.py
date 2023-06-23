@@ -40,7 +40,7 @@ class MVSNetDispnetDecoder(nn.Module):
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
             in_channels=32, base_channels=8, batch_norm=True
         )
-        self.decoder = DispnetDecoder(in_channels=2048, arch="mvsnet")
+        self.decoder = DispnetDecoder(in_channels=32, arch="mvsnet")
 
         self.init_weights()
 
@@ -106,6 +106,7 @@ class MVSNetDispnetDecoder(nn.Module):
         # print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
         dec = self.decoder(
             enc_fused=enc_fused,
+            sampling_invdepths=sampling_invdepths,
             all_enc={**all_enc_key, **all_enc_fused},
         )
 
