@@ -103,7 +103,7 @@
                 "--training_type",
                 "mvd",
                 "--output",
-                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_dispnetdecoder/debug_second_run_3dconvreduction",
+                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_dispnetdecoder/debug_second_run_3dconvreduction_wo_bnrelu",
                 "--num_gpus",
                 "1",
                 "--batch_size",
