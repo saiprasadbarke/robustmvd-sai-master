@@ -70,10 +70,20 @@ def threeD_conv(
 class DispnetDecoder(nn.Module):
     def __init__(self, in_channels: int, arch: str = "dispnet"):
         super().__init__()
-
+        self.arch = arch
         C_curr = in_channels
+        # self.threeDconv_0 = (
+        #     threeD_conv(64, 1, relu=False, bn=False) if not arch == "dispnet" else None
+        # )
         self.threeDconv_0 = (
-            threeD_conv(64, 1, relu=False, bn=False) if not arch == "dispnet" else None
+            None
+            if arch == "dispnet"
+            else nn.Sequential(
+                threeD_conv(64, 32, relu=False, bn=False),
+                threeD_conv(32, 16, relu=False, bn=False),
+                threeD_conv(16, 8, relu=False, bn=False),
+                threeD_conv(8, 1, relu=False, bn=False),
+            )
         )
         self.pred_0 = pred_block(C_curr, first=True)
 
@@ -81,8 +91,17 @@ class DispnetDecoder(nn.Module):
         C_curr = int(C_curr / 2)  # 512
 
         self.deconv_1 = deconv(C_last, C_curr, first=True)
+        # self.threeDconv_1 = (
+        #     threeD_conv(32, 1, relu=False, bn=False) if not arch == "dispnet" else None
+        # )
         self.threeDconv_1 = (
-            threeD_conv(32, 1, relu=False, bn=False) if not arch == "dispnet" else None
+            None
+            if arch == "dispnet"
+            else nn.Sequential(
+                threeD_conv(32, 16, relu=False, bn=False),
+                threeD_conv(16, 8, relu=False, bn=False),
+                threeD_conv(8, 1, relu=False, bn=False),
+            )
         )
         self.rfeat1 = iconv_block(C_curr + (512 if arch == "dispnet" else 64), C_curr)
 
@@ -92,8 +111,16 @@ class DispnetDecoder(nn.Module):
         C_curr = int(C_curr / 2)  # 256
 
         self.deconv_2 = deconv(C_last, C_curr, first=True)
+        # self.threeDconv_2 = (
+        #     threeD_conv(16, 1, relu=False, bn=False) if not arch == "dispnet" else None
+        # )
         self.threeDconv_2 = (
-            threeD_conv(16, 1, relu=False, bn=False) if not arch == "dispnet" else None
+            None
+            if arch == "dispnet"
+            else nn.Sequential(
+                threeD_conv(16, 8, relu=False, bn=False),
+                threeD_conv(8, 1, relu=False, bn=False),
+            )
         )
         self.rfeat2 = iconv_block(C_curr + (512 if arch == "dispnet" else 128), C_curr)
         self.pred_2 = pred_block(C_curr, first=True)
@@ -103,7 +130,7 @@ class DispnetDecoder(nn.Module):
 
         self.deconv_3 = deconv(C_last, C_curr, first=True)
         self.threeDconv_3 = (
-            threeD_conv(8, 1, relu=False, bn=False) if not arch == "dispnet" else None
+            None if arch == "dispnet" else threeD_conv(8, 1, relu=False, bn=False)
         )
         self.rfeat3 = iconv_block(C_curr + (256 if arch == "dispnet" else 256), C_curr)
         self.pred_3 = pred_block(C_curr, first=True)
@@ -242,6 +269,14 @@ class DispnetDecoder(nn.Module):
         rfeat5 = self.rfeat5(torch.cat((skip_1, deconv_5, pred_4_up), 1))
         pred_5 = self.pred_5(rfeat5)
         self.add_outputs(pred=pred_5, preds=preds)
+
+        # if self.arch != "dispnet":
+        #     prob = preds["invdepth"]
+        #     prob = F.softmax(prob, dim=1)  # NSHW
+        #     pred_invdepth = torch.sum(
+        #         prob * sampling_invdepths, dim=1, keepdim=True
+        #     )  # N1HW
+        #     preds["invdepth"] = pred_invdepth
 
         return preds
 
