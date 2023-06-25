@@ -103,7 +103,7 @@
                 "--training_type",
                 "mvd",
                 "--output",
-                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_dispnetdecoder/debug_second_run_3dconvreduction_wo_bnrelu",
+                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_dispnetdecoder/debug_second_run_3dconvreduction_wo_bnrelu_with_aug",
                 "--num_gpus",
                 "1",
                 "--batch_size",
@@ -125,15 +125,12 @@
                 "mvsnet_loss",
                 "--dataset",
                 "blendedmvs.train_mvsnet.mvd",
-                "--input_size",
-                "384",
-                "512",
                 "--scheduler",
                 "mvsnet_scheduler",
                 "--log_interval",
                 "100",
-                // "--augmentations",
-                // "mvsnet_augmentations"
+                "--augmentations",
+                "mvsnet_augmentations"
             ],
         },
         {
