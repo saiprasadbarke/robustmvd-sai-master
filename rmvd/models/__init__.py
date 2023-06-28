@@ -3,6 +3,7 @@ from .supervised_monodepth2 import supervised_monodepth2
 from .mvsnet import mvsnet_blendedmvs
 from .dpt import dpt_large_kitti
 from .mvsnet_dispnet_decoder import mvsnet_dispnetdecoder
+from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
 from .wrappers.monodepth2 import (
     monodepth2_mono_stereo_1024x320_wrapped,
     monodepth2_mono_stereo_wrapped,
