@@ -18,7 +18,7 @@ import timm
 from rmvd.utils import select_by_index, get_torch_model_device, to_torch, to_numpy
 from .registry import register_model
 from .helpers import build_model_with_cfg
-from rmvd.data.transforms import UpscaleInputsToNextMultipleOf
+from rmvd.data.transforms import UpscaleInputsToNextMultipleOf, NormalizeImagesByShiftAndScale, NormalizeImagesToMinMax
 
 
 class Slice(nn.Module):
@@ -578,6 +578,20 @@ class DPT(BaseModel):
 
         self.scratch.output_conv = head
 
+    def input_adapter(self, images, keyview_idx, **_):
+        device = get_torch_model_device(self)
+
+        image = select_by_index(images, keyview_idx)
+        resized = UpscaleInputsToNextMultipleOf(32)({'images': [image]})
+        resized = NormalizeImagesToMinMax(min_val=0., max_val=1.)(resized)
+        resized = NormalizeImagesByShiftAndScale(shift=[0.485, 0.456, 0.406], scale=[0.229, 0.224, 0.225])(resized)
+        image = resized['images'][0]
+        
+        image = to_torch(image, device=device)
+
+        sample = {'images': [image], 'keyview_idx': 0}
+        return sample
+
 
     def forward(self, images, keyview_idx, **_):
         x = select_by_index(images, keyview_idx)
@@ -605,6 +619,10 @@ class DPT(BaseModel):
         }
 
         return pred, aux
+
+    def output_adapter(self, model_output):
+        pred, aux = model_output
+        return to_numpy(pred), to_numpy(aux)
 
 
 class DPTDepthModel(DPT):
