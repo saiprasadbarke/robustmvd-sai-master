@@ -28,6 +28,8 @@ from rmvd.data.transforms import (
     NormalizeImagesByShiftAndScale,
 )
 
+verbose = False
+
 
 class MVSNet(nn.Module):
     def __init__(self, num_sampling_points=128, sampling_type="linear_depth"):
@@ -82,13 +84,15 @@ class MVSNet(nn.Module):
         else:
             min_depth, max_depth = depth_range
 
-        print(f"images_key: {image_key.shape}")
+        print(f"images_key: {image_key.shape}") if verbose else None
         all_enc_key, enc_key = self.encoder(image_key)
-        print(f"enc_key: {enc_key.shape}")
-        print({f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()})
-        print(f"images_source: {images_source[0].shape}")
+        print(f"enc_key: {enc_key.shape}") if verbose else None
+        print(
+            {f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()}
+        ) if verbose else None
+        print(f"images_source: {images_source[0].shape}") if verbose else None
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
-        print(f"enc_sources: {enc_sources[0].shape}")
+        print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
         corrs, masks, sampling_invdepths = self.corr_block(
             feat_key=enc_key,
             intrinsics_key=intrinsics_key,
@@ -102,10 +106,12 @@ class MVSNet(nn.Module):
         )
 
         fused_corr, _ = self.fusion_block(feat_key=enc_key, corrs=corrs, masks=masks)
-        print(f"fused_corr: {fused_corr.shape}")
+        print(f"fused_corr: {fused_corr.shape}") if verbose else None
         all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
-        print(f"enc_fused: {enc_fused.shape}")
-        print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
+        print(f"enc_fused: {enc_fused.shape}") if verbose else None
+        print(
+            {f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()}
+        ) if verbose else None
         dec = self.decoder(
             enc_fused=enc_fused,
             sampling_invdepths=sampling_invdepths,
@@ -166,6 +172,6 @@ def mvsnet_dispnet_encoder(
         weights=weights,
         train=train,
         num_gpus=num_gpus,
-        num_sampling_points=256,
+        num_sampling_points=128,
     )
     return model
