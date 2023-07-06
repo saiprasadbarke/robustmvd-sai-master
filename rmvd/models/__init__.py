@@ -1,8 +1,11 @@
 from .robust_mvd import robust_mvd, robust_mvd_5M
+from .robust_mvd_mvsnet_encoder import robust_mvd_mvsnet_encoder
 from .supervised_monodepth2 import supervised_monodepth2
 from .mvsnet import mvsnet_blendedmvs
 from .dpt import dpt_large_kitti
-from .mvsnet_dispnet_decoder import mvsnet_dispnet_decoder
+from .mvsnet_dispnet_decoder_depth_slice_fusedcostvolume import (
+    mvsnet_dispnet_decoder_depth_slice_fusedcostvolume,
+)
 from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
 from .mvsnet_dispnet_decoder_3d_downsample import mvsnet_dispnet_decoder_3d_downsample
 from .wrappers.monodepth2 import (

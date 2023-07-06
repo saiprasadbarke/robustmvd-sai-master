@@ -123,9 +123,30 @@ class MVSNetDispnetDecoder(nn.Module):
         }
         all_enc_fused_depth = [v.shape[2] for k, v in all_enc_fused.items()]
         all_depths = all_enc_fused_depth + [enc_fused_depth]
-        enc_fused = enc_fused.repeat(1, 1, int(max(all_depths) / enc_fused_depth), 1, 1)
+        # enc_fused = enc_fused.repeat(1, 1, int(max(all_depths) / enc_fused_depth), 1, 1)
+        enc_fused = F.interpolate(
+            enc_fused,
+            scale_factor=(1, 1, int(max(all_depths) / enc_fused_depth), 1, 1),
+            mode="trilinear",
+            align_corners=False,
+        )
+        # all_enc_fused = {
+        #     k: v.repeat(1, 1, int(max(all_depths) / all_enc_fused_depth[i]), 1, 1)
+        #     for i, (k, v) in enumerate(all_enc_fused.items())
+        # }
         all_enc_fused = {
-            k: v.repeat(1, 1, int(max(all_depths) / all_enc_fused_depth[i]), 1, 1)
+            k: F.interpolate(
+                v,
+                scale_factor=(
+                    1,
+                    1,
+                    int(max(all_depths) / all_enc_fused_depth[i]),
+                    1,
+                    1,
+                ),
+                mode="trilinear",
+                align_corners=False,
+            )
             for i, (k, v) in enumerate(all_enc_fused.items())
         }
         decs = []
@@ -208,7 +229,7 @@ class MVSNetDispnetDecoder(nn.Module):
 
 
 @register_model
-def mvsnet_dispnet_decoder(
+def mvsnet_dispnet_decoder_depth_slice_fusedcostvolume(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     assert not (
