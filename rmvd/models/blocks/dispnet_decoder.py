@@ -34,45 +34,45 @@ def deconv(in_planes, out_planes, first):
 
 
 class DispnetDecoder(nn.Module):
-    def __init__(self, arch: str = "dispnet"):
+    def __init__(self):
         super().__init__()
 
-        C_curr = 1024 if arch == "dispnet" else 64
+        C_curr = 1024
         self.pred_0 = pred_block(C_curr, first=True)
 
         C_last = C_curr
         C_curr = int(C_curr / 2)  # 512
 
         self.deconv_1 = deconv(C_last, C_curr, first=True)
-        self.rfeat1 = iconv_block(C_curr + (512 if arch == "dispnet" else 32), C_curr)
+        self.rfeat1 = iconv_block(C_curr + 512, C_curr)
         self.pred_1 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 512
         C_curr = int(C_curr / 2)  # 256
 
         self.deconv_2 = deconv(C_last, C_curr, first=True)
-        self.rfeat2 = iconv_block(C_curr + (512 if arch == "dispnet" else 16), C_curr)
+        self.rfeat2 = iconv_block(C_curr + 512, C_curr)
         self.pred_2 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 256
         C_curr = int(C_curr / 2)  # 128
 
         self.deconv_3 = deconv(C_last, C_curr, first=True)
-        self.rfeat3 = iconv_block(C_curr + (256 if arch == "dispnet" else 8), C_curr)
+        self.rfeat3 = iconv_block(C_curr + 256, C_curr)
         self.pred_3 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 128
         C_curr = int(C_curr / 2)  # 64
 
         self.deconv_4 = deconv(C_last, C_curr, first=True)
-        self.rfeat4 = iconv_block(C_curr + (128 if arch == "dispnet" else 16), C_curr)
+        self.rfeat4 = iconv_block(C_curr + 128, C_curr)
         self.pred_4 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 64
         C_curr = int(C_curr / 2)  # 32
 
         self.deconv_5 = deconv(C_last, C_curr, first=True)
-        self.rfeat5 = iconv_block(C_curr + (64 if arch == "dispnet" else 8), C_curr)
+        self.rfeat5 = iconv_block(C_curr + 64, C_curr)
         self.pred_5 = pred_block(C_curr, first=True)
 
     def forward(self, enc_fused, all_enc):
