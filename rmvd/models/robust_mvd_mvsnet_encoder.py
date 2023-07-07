@@ -62,13 +62,13 @@ class RobustMVD_mvsnet_encoder(nn.Module):
         intrinsics_source = exclude_index(intrinsics, keyview_idx)
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
-        print(f"images_key: {image_key.shape}")
+        # print(f"images_key: {image_key.shape}")
         all_enc_key, enc_key = self.encoder(image_key)
-        print(f"enc_key: {enc_key.shape}")
-        print({f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()})
-        print(f"images_source: {images_source[0].shape}")
+        # print(f"enc_key: {enc_key.shape}")
+        # print({f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()})
+        # print(f"images_source: {images_source[0].shape}")
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
-        print(f"enc_sources: {enc_sources[0].shape}")
+        # print(f"enc_sources: {enc_sources[0].shape}")
         ctx = self.context_encoder(enc_key)
 
         corrs, masks, _ = self.corr_block(
@@ -83,10 +83,10 @@ class RobustMVD_mvsnet_encoder(nn.Module):
         )
 
         fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
-        print(f"fused_corr: {fused_corr.shape}")
+        # print(f"fused_corr: {fused_corr.shape}")
         all_enc_fused, enc_fused = self.fusion_enc_block(corr=fused_corr, ctx=ctx)
-        print(f"enc_fused: {enc_fused.shape}")
-        print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
+        # print(f"enc_fused: {enc_fused.shape}")
+        # print({f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()})
         dec = self.decoder(
             enc_fused=enc_fused, all_enc={**all_enc_key, **all_enc_fused}
         )

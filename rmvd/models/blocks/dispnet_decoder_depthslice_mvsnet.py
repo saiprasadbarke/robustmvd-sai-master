@@ -33,7 +33,7 @@ def deconv(in_planes, out_planes, first):
     )
 
 
-class DispnetDecoder(nn.Module):
+class DispnetDecoderForMvsnet(nn.Module):
     def __init__(self, arch: str = "dispnet"):
         super().__init__()
 
@@ -82,45 +82,59 @@ class DispnetDecoder(nn.Module):
         self.add_outputs(pred=pred_0, preds=preds)
 
         deconv_1 = self.deconv_1(enc_fused)
+        del enc_fused
         pred_0_up = F.interpolate(
             pred_0, size=deconv_1.shape[-2:], mode="bilinear", align_corners=False
         ).detach()
+        del pred_0
         rfeat1 = self.rfeat1(torch.cat((all_enc["conv5_1"], deconv_1, pred_0_up), 1))
+        del deconv_1, pred_0_up
         pred_1 = self.pred_1(rfeat1)
         self.add_outputs(pred=pred_1, preds=preds)
 
         deconv_2 = self.deconv_2(rfeat1)
+        del rfeat1
         pred_1_up = F.interpolate(
             pred_1, size=deconv_2.shape[-2:], mode="bilinear", align_corners=False
         ).detach()
+        del pred_1
         rfeat2 = self.rfeat2(torch.cat((all_enc["conv4_1"], deconv_2, pred_1_up), 1))
+        del deconv_2, pred_1_up
         pred_2 = self.pred_2(rfeat2)
         self.add_outputs(pred=pred_2, preds=preds)
 
         deconv_3 = self.deconv_3(rfeat2)
+        del rfeat2
         pred_2_up = F.interpolate(
             pred_2, size=deconv_3.shape[-2:], mode="bilinear", align_corners=False
         ).detach()
+        del pred_2
         rfeat3 = self.rfeat3(torch.cat((all_enc["conv3_1"], deconv_3, pred_2_up), 1))
+        del deconv_3, pred_2_up
         pred_3 = self.pred_3(rfeat3)
         self.add_outputs(pred=pred_3, preds=preds)
 
         deconv_4 = self.deconv_4(rfeat3)
+        del rfeat3
         pred_3_up = F.interpolate(
             pred_3, size=deconv_4.shape[-2:], mode="bilinear", align_corners=False
         ).detach()
+        del pred_3
         rfeat4 = self.rfeat4(torch.cat((all_enc["conv2"], deconv_4, pred_3_up), 1))
+        del deconv_4, pred_3_up
         pred_4 = self.pred_4(rfeat4)
         self.add_outputs(pred=pred_4, preds=preds)
 
         deconv_5 = self.deconv_5(rfeat4)
+        del rfeat4
         pred_4_up = F.interpolate(
             pred_4, size=deconv_5.shape[-2:], mode="bilinear", align_corners=False
         ).detach()
         rfeat5 = self.rfeat5(torch.cat((all_enc["conv1"], deconv_5, pred_4_up), 1))
+        del deconv_5, pred_4_up
         pred_5 = self.pred_5(rfeat5)
         self.add_outputs(pred=pred_5, preds=preds)
-
+        del rfeat5, pred_5
         return preds
 
     def add_outputs(self, pred, preds):

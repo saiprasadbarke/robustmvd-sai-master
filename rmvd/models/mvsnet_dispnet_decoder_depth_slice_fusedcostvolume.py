@@ -11,7 +11,7 @@ from .blocks.mvsnet_encoder import MVSNetEncoder
 from .blocks.planesweep_corr import PlanesweepCorrelation
 from .blocks.variance_costvolume_fusion import VarianceCostvolumeFusion
 from .blocks.mvsnet_fused_costvolume_encoder import MVSNetFusedCostvolumeEncoder
-from .blocks.dispnet_decoder import DispnetDecoder
+from .blocks.dispnet_decoder_depthslice_mvsnet import DispnetDecoderForMvsnet
 
 from rmvd.utils import (
     get_torch_model_device,
@@ -43,7 +43,7 @@ class MVSNetDispnetDecoder(nn.Module):
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
             in_channels=32, base_channels=8, batch_norm=True
         )
-        self.decoder = DispnetDecoder(arch="mvsnet")
+        self.decoder = DispnetDecoderForMvsnet(arch="mvsnet")
 
         self.init_weights()
 
@@ -124,22 +124,21 @@ class MVSNetDispnetDecoder(nn.Module):
         all_enc_fused_depth = [v.shape[2] for k, v in all_enc_fused.items()]
         all_depths = all_enc_fused_depth + [enc_fused_depth]
         # enc_fused = enc_fused.repeat(1, 1, int(max(all_depths) / enc_fused_depth), 1, 1)
-        enc_fused = F.interpolate(
+        enc_fused_adjusted = F.interpolate(
             enc_fused,
-            scale_factor=(1, 1, int(max(all_depths) / enc_fused_depth), 1, 1),
+            scale_factor=(int(max(all_depths) / enc_fused_depth), 1, 1),
             mode="trilinear",
             align_corners=False,
         )
+        del enc_fused
         # all_enc_fused = {
         #     k: v.repeat(1, 1, int(max(all_depths) / all_enc_fused_depth[i]), 1, 1)
         #     for i, (k, v) in enumerate(all_enc_fused.items())
         # }
-        all_enc_fused = {
+        all_enc_fused_adjusted = {
             k: F.interpolate(
                 v,
                 scale_factor=(
-                    1,
-                    1,
                     int(max(all_depths) / all_enc_fused_depth[i]),
                     1,
                     1,
@@ -149,18 +148,19 @@ class MVSNetDispnetDecoder(nn.Module):
             )
             for i, (k, v) in enumerate(all_enc_fused.items())
         }
+        del all_enc_fused
         decs = []
         for i in range(max(all_depths)):
             dec = self.decoder(
-                enc_fused=enc_fused[:, :, i, :, :],
+                enc_fused=enc_fused_adjusted[:, :, i, :, :],
                 all_enc={
                     **all_enc_key,
-                    **{k: v[:, :, i, :, :] for k, v in all_enc_fused.items()},
+                    **{k: v[:, :, i, :, :] for k, v in all_enc_fused_adjusted.items()},
                 },
             )
             decs.append(dec)
-        del enc_fused
-        del all_enc_fused
+        del enc_fused_adjusted
+        del all_enc_fused_adjusted
         del all_enc_key
         prob = torch.stack([dec["invdepth"] for dec in decs], dim=2).squeeze(1)
         del decs
