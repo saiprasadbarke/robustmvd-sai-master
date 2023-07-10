@@ -186,7 +186,7 @@
                 "--training_type",
                 "mvd",
                 "--output",
-                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/rmvd/debug_rmvd_output_sizes",
+                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/rmvd/debug_rmvd_checksizes",
                 "--log_interval",
                 "100",
                 "--num_gpus",
@@ -208,13 +208,14 @@
                 "--loss",
                 "robust_mvd_loss",
                 "--dataset",
-                "blendedmvs.train_mvsnet.mvd",
-                "--input_size",
-                "128",
-                "160",
+                "blendedmvs.robust_mvd.mvd",
                 "--scheduler",
                 "flownet_scheduler",
-                "--no_tensorboard"
+                "--no_tensorboard",
+                "--augmentations",
+                "robust_mvd_augmentations_blendedmvs",
+                "--batch_augmentations",
+                "robust_mvd_batch_augmentations"
             ],
         },
         {
