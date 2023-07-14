@@ -7,7 +7,7 @@ import numpy as np
 from .registry import register_model
 from .helpers import build_model_with_cfg
 from .blocks.dispnet_context_encoder import DispnetContextEncoder
-from .blocks.mvsnet_encoder import MVSNetEncoder
+from .blocks.mvsnet_encoder_rmvd import MVSNetEncoderRMVD
 from .blocks.planesweep_corr import PlanesweepCorrelation
 from .blocks.learned_fusion import LearnedFusion
 from .blocks.dispnet_costvolume_encoder import DispnetCostvolumeEncoder
@@ -27,7 +27,7 @@ class RobustMVD_mvsnet_encoder(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.encoder = MVSNetEncoder(base_channels=64)
+        self.encoder = MVSNetEncoderRMVD(base_channels=64)
         self.context_encoder = DispnetContextEncoder()
         self.corr_block = PlanesweepCorrelation()
         self.fusion_block = LearnedFusion()
