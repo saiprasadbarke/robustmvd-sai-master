@@ -89,7 +89,7 @@ class MVSNetEncoderRMVD(nn.Module):
             ),
         )
 
-        self.conv3r = nn.Conv2d(base_channels * 4, base_channels * 4, 1, bias=False)
+        # self.conv3r = nn.Conv2d(base_channels * 4, base_channels * 4, 1, bias=False)
 
     def forward(self, x):
         conv1 = self.conv1(x)  # images_key: torch.Size([1, 3, 128, 160])
