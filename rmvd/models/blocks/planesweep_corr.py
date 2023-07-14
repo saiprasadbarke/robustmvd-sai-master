@@ -464,7 +464,7 @@ class EpipolarSamplingPoints:
 
 class PlanesweepCorrelation(nn.Module):
     @torch.no_grad()
-    def __init__(self, warp_only=False, normalize=False):
+    def __init__(self, warp_only=False, normalize="dim"):
         super().__init__()
 
         self.feat_key = None
