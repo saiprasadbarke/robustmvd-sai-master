@@ -1,5 +1,6 @@
 from .robust_mvd import robust_mvd, robust_mvd_5M
 from .robust_mvd_mvsnet_encoder import robust_mvd_mvsnet_encoder
+from .schizo_groupwise_corr import schizo_groupwise_corr
 from .supervised_monodepth2 import supervised_monodepth2
 from .mvsnet import mvsnet_blendedmvs
 from .dpt import dpt_large_kitti
