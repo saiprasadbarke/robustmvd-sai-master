@@ -120,6 +120,77 @@ def warp(
     return output, mask  # N,C,h_out,w_out ; N,1,h_out,w_out
 
 
+def build_gwc_volume(feat_ref, feat_src, maxdisp, num_groups=32):
+    B, C, H, W = feat_ref.shape
+    volume = feat_ref.new_zeros([B, num_groups, maxdisp, H, W])
+    for i in range(maxdisp):
+        if i > 0:
+            volume[:, :, i, :, i:] = compute_groupwise_correlation(
+                feat_ref[:, :, :, i:], feat_src[:, :, :, :-i], num_groups
+            )
+        else:
+            volume[:, :, i, :, :] = compute_groupwise_correlation(
+                feat_ref, feat_src, num_groups
+            )
+    volume = volume.contiguous()
+    return volume
+
+
+def compute_groupwise_correlation(feat_src, feat_ref, num_groups):
+    # Assume a and b are your 4D tensors with shape (batchsize, channels, height, width)
+    # And channels is divisible by num_groups
+    B, C, H, W = feat_src.shape
+    group_channels = C // num_groups
+
+    correlations = []
+    for g in range(num_groups):
+        # Slice tensors along the channel dimension
+        feat_src_slice = feat_src[
+            :, g * group_channels : (g + 1) * group_channels, :, :
+        ]
+        feat_ref_slice = feat_ref[
+            :, g * group_channels : (g + 1) * group_channels, :, :
+        ]
+
+        # Reshape tensors to be 2D: (batch_size, -1)
+        feat_src_slice = feat_src_slice.reshape(B, group_channels, -1)
+        feat_ref_slice = feat_ref_slice.reshape(B, group_channels, -1)
+
+        # Compute group-wise dot product and reshape the result to be 4D again
+        correlation = feat_src_slice * feat_ref_slice
+        correlation = correlation.reshape(B, group_channels, H, W)
+        correlation = correlation.sum(dim=1, keepdim=True)
+
+        correlations.append(correlation)
+
+    # Concatenate correlations along the channel dimension
+    correlations = torch.cat(correlations, dim=1)
+
+    return correlations
+
+
+class GroupWiseCorr(nn.Module):
+    def __init__(self, normalize=False, padding_mode="zeros"):
+        super().__init__()
+        self.normalize = normalize
+        self.padding_mode = padding_mode
+
+    def forward(self, feat_ref, feat_src, grids=None, mask=None):
+        num_groups = 32
+        groupwise_corr = compute_groupwise_correlation(feat_ref, feat_src, num_groups)
+        if self.normalize:
+            groupwise_corr = normalize(groupwise_corr, dim=1)
+        corr, corr_mask = warp_multi(
+            groupwise_corr, grids=grids, padding_mode=self.padding_mode
+        )
+        corr = corr * corr_mask.unsqueeze(2)
+
+        if mask is not None:
+            corr = corr * mask.unsqueeze(2)  # N, S, h_ref, W_ref
+            corr_mask = corr_mask * mask  # N, S, H_ref, W_ref
+        return corr, corr_mask
+
+
 class WarpOnlyCorr(nn.Module):
     def __init__(self, normalize=False, padding_mode="zeros"):
         super().__init__()
@@ -464,7 +535,7 @@ class EpipolarSamplingPoints:
 
 class PlanesweepCorrelation(nn.Module):
     @torch.no_grad()
-    def __init__(self, warp_only=False, normalize="dim"):
+    def __init__(self, corr_type="torch", normalize="dim"):
         super().__init__()
 
         self.feat_key = None
@@ -475,10 +546,12 @@ class PlanesweepCorrelation(nn.Module):
         self.source_to_key_transforms = None
         self.device = None
 
-        if not warp_only:
+        if corr_type == "torch":
             self.corr_block = TorchCorr(normalize=normalize, padding_mode="zeros")
-        else:
+        elif corr_type == "warponly":
             self.corr_block = WarpOnlyCorr(normalize=normalize, padding_mode="zeros")
+        elif corr_type == "groupwise":
+            self.corr_block = GroupWiseCorr(normalize=normalize, padding_mode="zeros")
 
         self.coeffs = []
 
