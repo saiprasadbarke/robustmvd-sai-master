@@ -9,6 +9,7 @@ from .mvsnet_dispnet_decoder_depth_slice_fusedcostvolume import (
     mvsnet_dispnet_decoder_depth_slice_fusedcostvolume,
 )
 from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
+from .mvsnet_groupwisecorr import mvsnet_groupwisecorr
 from .wrappers.monodepth2 import (
     monodepth2_mono_stereo_1024x320_wrapped,
     monodepth2_mono_stereo_wrapped,

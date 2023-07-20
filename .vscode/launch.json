@@ -191,7 +191,7 @@
                 "--num_gpus",
                 "1",
                 "--batch_size",
-                "2",
+                "4",
                 "--max_iterations",
                 "600000",
                 "--model",
