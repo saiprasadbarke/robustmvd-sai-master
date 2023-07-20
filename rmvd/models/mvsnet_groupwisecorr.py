@@ -25,7 +25,7 @@ from rmvd.utils import (
 )
 from rmvd.data.transforms import ResizeInputs
 
-verbose = True
+verbose = False
 
 
 class MVSnetGroupWiseCorr(nn.Module):
@@ -35,7 +35,7 @@ class MVSnetGroupWiseCorr(nn.Module):
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(corr_type="groupwise", normalize=True)
 
-        self.fusion_block = CostvolumeFusion(in_channels=self.num_sampling_points)
+        self.fusion_block = CostvolumeFusion()
         self.fusion_enc_block = CostvolumeEncoder()
         self.decoder = CostvolumeDecoder()
 
