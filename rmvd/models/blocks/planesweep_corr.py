@@ -169,6 +169,19 @@ def compute_groupwise_correlation(feat_src, feat_ref, num_groups):
     return correlations
 
 
+def compute_groupwise_correlation_new(feat_src, feat_ref, num_groups):
+    # Assume a and b are your 4D tensors with shape (batchsize, channels, height, width)
+    # And channels is divisible by num_groups
+    B, C, H, W = feat_src.shape
+    group_channels = C // num_groups
+
+    feat_src = feat_src.reshape(B, num_groups, group_channels, H, W)
+    feat_ref = feat_ref.reshape(B, num_groups, group_channels, H, W)
+    corr = (feat_src * feat_ref).sum(dim=2)
+
+    return corr
+
+
 class GroupWiseCorr(nn.Module):
     def __init__(self, normalize=False, padding_mode="zeros"):
         super().__init__()
@@ -177,7 +190,9 @@ class GroupWiseCorr(nn.Module):
 
     def forward(self, feat_ref, feat_src, grids=None, mask=None):
         num_groups = 32
-        groupwise_corr = compute_groupwise_correlation(feat_ref, feat_src, num_groups)
+        groupwise_corr = compute_groupwise_correlation_new(
+            feat_ref, feat_src, num_groups
+        )
         if self.normalize:
             groupwise_corr = normalize(groupwise_corr, dim=1)
         corr, corr_mask = warp_multi(
