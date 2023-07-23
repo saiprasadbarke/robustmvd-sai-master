@@ -24,6 +24,12 @@ from rmvd.utils import (
     exclude_index,
 )
 from rmvd.data.transforms import ResizeInputs
+from rmvd.data.transforms import (
+    UpscaleInputsToNextMultipleOf,
+    NormalizeIntrinsics,
+    NormalizeImagesToMinMax,
+    NormalizeImagesByShiftAndScale,
+)
 
 verbose = False
 
@@ -33,7 +39,9 @@ class MVSnetGroupWiseCorr(nn.Module):
         super().__init__()
         self.num_sampling_points = 128
         self.feat_encoder = FeatEncoder()
-        self.corr_block_groupwise = CorrBlock(corr_type="groupwise", normalize=True)
+        self.corr_block_groupwise = CorrBlock(
+            corr_type="groupwise_mvsnet", normalize=False
+        )
 
         self.fusion_block = CostvolumeFusion()
         self.fusion_enc_block = CostvolumeEncoder()
@@ -59,7 +67,7 @@ class MVSnetGroupWiseCorr(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, keyview_idx, **_):
+    def forward(self, images, poses, intrinsics, keyview_idx, depth_range, **_):
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
 
@@ -67,6 +75,15 @@ class MVSnetGroupWiseCorr(nn.Module):
         intrinsics_source = exclude_index(intrinsics, keyview_idx)
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
+
+        if depth_range is None:
+            device = get_torch_model_device(self)
+            N = images[0].shape[0]
+            min_depth = torch.tensor([0.2] * N, dtype=torch.float32, device=device)
+            max_depth = torch.tensor([100.0] * N, dtype=torch.float32, device=device)
+            depth_range = [min_depth, max_depth]
+        else:
+            min_depth, max_depth = depth_range
         print(f"images_key: {image_key.shape}") if verbose else None
         all_enc_key, ctx_key = self.feat_encoder(image_key)
         print(
@@ -99,8 +116,8 @@ class MVSnetGroupWiseCorr(nn.Module):
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
-            min_depth=0.4,
-            max_depth=1000.0,
+            min_depth=min_depth,
+            max_depth=max_depth,
             sampling_type="linear_depth",
         )
         del (
@@ -141,23 +158,16 @@ class MVSnetGroupWiseCorr(nn.Module):
     def input_adapter(self, images, keyview_idx, poses, intrinsics, **_):
         device = get_torch_model_device(self)
 
-        orig_ht, orig_wd = images[0].shape[-2:]
-        ht, wd = int(math.ceil(orig_ht / 64.0) * 64.0), int(
-            math.ceil(orig_wd / 64.0) * 64.0
+        resized = UpscaleInputsToNextMultipleOf(32)(
+            {"images": images, "intrinsics": intrinsics}
         )
-        if (orig_ht != ht) or (orig_wd != wd):
-            resized = ResizeInputs(size=(ht, wd))(
-                {"images": images, "intrinsics": intrinsics}
-            )
-            images = resized["images"]
-            intrinsics = resized["intrinsics"]
-
-        # normalize images
-        images = [image / 255.0 - 0.4 for image in images]
-
-        # model works with relative intrinsics:
-        scale_arr = np.array([[wd] * 3, [ht] * 3, [1.0] * 3], dtype=np.float32)  # 3, 3
-        intrinsics = [intrinsic / scale_arr for intrinsic in intrinsics]
+        resized = NormalizeIntrinsics()(resized)
+        resized = NormalizeImagesToMinMax(min_val=0.0, max_val=1.0)(resized)
+        resized = NormalizeImagesByShiftAndScale(
+            shift=[0.485, 0.456, 0.406], scale=[0.229, 0.224, 0.225]
+        )(resized)
+        images = resized["images"]
+        intrinsics = resized["intrinsics"]
 
         images, keyview_idx, poses, intrinsics = to_torch(
             (images, keyview_idx, poses, intrinsics), device=device
