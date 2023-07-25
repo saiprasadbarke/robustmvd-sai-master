@@ -155,7 +155,7 @@ class MVSnetGroupWiseCorr(nn.Module):
 
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses, intrinsics, **_):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range, **_):
         device = get_torch_model_device(self)
 
         resized = UpscaleInputsToNextMultipleOf(32)(
@@ -169,8 +169,8 @@ class MVSnetGroupWiseCorr(nn.Module):
         images = resized["images"]
         intrinsics = resized["intrinsics"]
 
-        images, keyview_idx, poses, intrinsics = to_torch(
-            (images, keyview_idx, poses, intrinsics), device=device
+        images, keyview_idx, poses, intrinsics, depth_range = to_torch(
+            (images, keyview_idx, poses, intrinsics, depth_range), device=device
         )
 
         sample = {
@@ -178,6 +178,7 @@ class MVSnetGroupWiseCorr(nn.Module):
             "keyview_idx": keyview_idx,
             "poses": poses,
             "intrinsics": intrinsics,
+            "depth_range": depth_range,
         }
         return sample
 
