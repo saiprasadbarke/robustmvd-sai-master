@@ -132,7 +132,7 @@ def compute_groupwise_correlation_5D(feat_src, feat_ref, num_groups):
     return corr  # (B, num_groups, D, H, W)
 
 
-class GroupWiseCorr_1(nn.Module):
+class GroupWiseCorr(nn.Module):
     def __init__(self, normalize=False, padding_mode="zeros", reshape=True):
         super().__init__()
         self.normalize = normalize
@@ -151,7 +151,7 @@ class GroupWiseCorr_1(nn.Module):
         warped_feat_src = warped_feat_src.reshape(N, C, S, H, W)
         feat_ref_NCSHW = feat_ref.unsqueeze(2).repeat(1, 1, S, 1, 1)
         groupwise_corr = compute_groupwise_correlation_5D(
-            warped_feat_src, feat_ref_NCSHW, num_groups
+            warped_feat_src, feat_ref_NCSHW, num_groups  # N, num_groups, S, H, W
         )
         if self.normalize:
             groupwise_corr = normalize(groupwise_corr, dim=1)
@@ -532,12 +532,8 @@ class PlanesweepCorrelation(nn.Module):
             self.corr_block = TorchCorr(normalize=normalize, padding_mode="zeros")
         elif corr_type == "warponly":
             self.corr_block = WarpOnlyCorr(normalize=normalize, padding_mode="zeros")
-        elif corr_type == "groupwise_rmvd":
-            self.corr_block = GroupWiseCorr_1(
-                normalize=normalize, padding_mode="zeros", reshape=False
-            )
-        elif corr_type == "groupwise_mvsnet":
-            self.corr_block = GroupWiseCorr_1(
+        elif corr_type == "groupwise":
+            self.corr_block = GroupWiseCorr(
                 normalize=normalize, padding_mode="zeros", reshape=True
             )
 
