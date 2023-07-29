@@ -534,7 +534,7 @@ class PlanesweepCorrelation(nn.Module):
             self.corr_block = WarpOnlyCorr(normalize=normalize, padding_mode="zeros")
         elif corr_type == "groupwise":
             self.corr_block = GroupWiseCorr(
-                normalize=normalize, padding_mode="zeros", reshape=True
+                normalize=normalize, padding_mode="zeros", reshape=False
             )
 
         self.coeffs = []
