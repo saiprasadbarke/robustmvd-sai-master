@@ -34,31 +34,35 @@ def deconv(in_planes, out_planes, first):
 
 
 class DispnetDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, corr_type="full", in_channels=1024):
         super().__init__()
 
-        C_curr = 1024
+        C_curr = in_channels
         self.pred_0 = pred_block(C_curr, first=True)
 
         C_last = C_curr
         C_curr = int(C_curr / 2)  # 512
 
         self.deconv_1 = deconv(C_last, C_curr, first=True)
-        self.rfeat1 = iconv_block(C_curr + 512, C_curr)
+        self.rfeat1 = iconv_block(
+            C_curr + (512 if corr_type == "full" else 128), C_curr
+        )  # 512 + 512 + 2
         self.pred_1 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 512
         C_curr = int(C_curr / 2)  # 256
 
         self.deconv_2 = deconv(C_last, C_curr, first=True)
-        self.rfeat2 = iconv_block(C_curr + 512, C_curr)
+        self.rfeat2 = iconv_block(
+            C_curr + (512 if corr_type == "full" else 128), C_curr
+        )
         self.pred_2 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 256
         C_curr = int(C_curr / 2)  # 128
 
         self.deconv_3 = deconv(C_last, C_curr, first=True)
-        self.rfeat3 = iconv_block(C_curr + 256, C_curr)
+        self.rfeat3 = iconv_block(C_curr + (256 if corr_type == "full" else 64), C_curr)
         self.pred_3 = pred_block(C_curr, first=True)
 
         C_last = C_curr  # 128
@@ -75,18 +79,20 @@ class DispnetDecoder(nn.Module):
         self.rfeat5 = iconv_block(C_curr + 64, C_curr)
         self.pred_5 = pred_block(C_curr, first=True)
 
-    def forward(self, enc_fused, all_enc):
+    def forward(self, enc_fused, all_enc):  # enc_fused: torch.Size([1, 1024, 6, 12])
         preds = {}
 
-        pred_0 = self.pred_0(enc_fused)  # >= 0
+        pred_0 = self.pred_0(enc_fused)  # >= 0  # torch.Size([1, 2, 6, 12])
         self.add_outputs(pred=pred_0, preds=preds)
 
-        deconv_1 = self.deconv_1(enc_fused)
+        deconv_1 = self.deconv_1(enc_fused)  # torch.Size([1, 512, 12, 24])
         pred_0_up = F.interpolate(
             pred_0, size=deconv_1.shape[-2:], mode="bilinear", align_corners=False
-        ).detach()
-        rfeat1 = self.rfeat1(torch.cat((all_enc["conv5_1"], deconv_1, pred_0_up), 1))
-        pred_1 = self.pred_1(rfeat1)
+        ).detach()  # torch.Size([1, 2, 12, 24])
+        rfeat1 = self.rfeat1(
+            torch.cat((all_enc["conv5_1"], deconv_1, pred_0_up), 1)
+        )  # torch.Size([1, 512, 12, 24])
+        pred_1 = self.pred_1(rfeat1)  # torch.Size([1, 2, 12, 24])
         self.add_outputs(pred=pred_1, preds=preds)
 
         deconv_2 = self.deconv_2(rfeat1)

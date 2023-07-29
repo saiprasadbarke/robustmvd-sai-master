@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class LearnedFusion3D(nn.Module):
-    def __init__(self, in_channels=128):
+    def __init__(self, in_channels=32):
         super().__init__()
 
         self.view_weights = []
@@ -44,10 +44,10 @@ class LearnedFusion3D(nn.Module):
             self.view_weights = [x[0] for x in self.view_weights]
 
             view_weights = [
-                view_weight * mask.unsqueeze(2)
+                view_weight * mask.unsqueeze(1)
                 for view_weight, mask in zip(self.view_weights, masks)
-            ]  # each NSHW
-            view_weights_sum = torch.stack(view_weights, dim=0).sum(0)  # N, S, H, W
+            ]  # each NCSHW
+            view_weights_sum = torch.stack(view_weights, dim=0).sum(0)  # N,S, H, W
             self.fused_mask = (view_weights_sum != 0).float()
 
             corrs = torch.stack(corrs, dim=0)

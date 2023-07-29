@@ -1,15 +1,25 @@
+# RobustMVD variants
 from .robust_mvd import robust_mvd, robust_mvd_5M
 from .robust_mvd_mvsnet_encoder import robust_mvd_mvsnet_encoder
-from .dispenc_groupwise_corr_mvsencdec import dispenc_groupwise_corr_mvsencdec
-from .mvsenc_multi_corr_mvsencdec import mvsenc_multi_corr_mvsencdec
-from .supervised_monodepth2 import supervised_monodepth2
+from .robustmvd_groupwisecorr import robustmvd_groupwisecorr
+
+
+# MVSNET variants
 from .mvsnet import mvsnet_blendedmvs
-from .dpt import dpt_large_kitti
 from .mvsnet_dispnet_decoder_depth_slice_fusedcostvolume import (
     mvsnet_dispnet_decoder_depth_slice_fusedcostvolume,
 )
 from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
 from .mvsnet_groupwisecorr import mvsnet_groupwisecorr
+from .mvsnet_groupwisecorr_learnedfusion import mvsnet_groupwisecorr_learnedfuse
+from .mvsnet_groupwisecorr_learnedfusion_withfinalenclayer import (
+    mvsnet_groupwisecorr_learnedfusion_withfinalenclayer,
+)
+from .mvsenc_multi_corr_mvsencdec import mvsenc_multi_corr_mvsencdec
+
+
+from .dpt import dpt_large_kitti
+from .supervised_monodepth2 import supervised_monodepth2
 from .wrappers.monodepth2 import (
     monodepth2_mono_stereo_1024x320_wrapped,
     monodepth2_mono_stereo_wrapped,
