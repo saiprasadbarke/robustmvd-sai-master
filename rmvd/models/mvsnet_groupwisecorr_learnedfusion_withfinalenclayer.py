@@ -38,11 +38,14 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
+        self.num_groups = 32
         self.feat_encoder = FeatEncoder()
-        self.corr_block_groupwise = CorrBlock(corr_type="groupwise", normalize=False)
+        self.corr_block_groupwise = CorrBlock(
+            corr_type="groupwise", normalize=True, num_groups=self.num_groups
+        )
 
-        self.fusion_block = CostvolumeFusion()
-        self.fusion_enc_block = CostvolumeEncoder()
+        self.fusion_block = CostvolumeFusion(in_channels=self.num_groups)
+        self.fusion_enc_block = CostvolumeEncoder(in_channels=self.num_groups)
         self.decoder = CostvolumeDecoder()
 
         self.init_weights()
