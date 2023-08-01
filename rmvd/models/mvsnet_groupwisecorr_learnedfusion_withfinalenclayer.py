@@ -38,7 +38,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
-        self.num_groups = 32
+        self.num_groups = 4
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
             corr_type="groupwise", normalize=True, num_groups=self.num_groups
@@ -100,11 +100,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
         del images_source
         print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
 
-        (
-            corrs_groupwise,
-            masks_groupwise,
-            sampling_invdepths,
-        ) = self.corr_block_groupwise(
+        corrs, masks, sampling_invdepths = self.corr_block_groupwise(
             feat_key=enc_key,
             intrinsics_key=intrinsics_key,
             feat_sources=enc_sources,
@@ -115,25 +111,15 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
             max_depth=max_depth,
             sampling_type="linear_depth",
         )
-        del (
-            enc_key,
-            enc_sources,
-        )
-        print(f"corrs_groupwise: {corrs_groupwise[0].shape}") if verbose else None
-        print(f"masks_groupwise: {masks_groupwise[0].shape}") if verbose else None
-        fused_corr_groupwise, _ = self.fusion_block(
-            corrs=corrs_groupwise, masks=masks_groupwise
-        )
-        del corrs_groupwise, masks_groupwise
-        print(
-            f"fused_corr_groupwise: {fused_corr_groupwise.shape}"
-        ) if verbose else None
-        fused_corr_groupwise = fused_corr_groupwise.permute(
-            0, 2, 1, 3, 4
-        )  # Making this N, S, C, H, W because the encoder changes the order again to N, C, S, H, W
-        all_enc_fused, enc_fused = self.fusion_enc_block(
-            fused_corr=fused_corr_groupwise
-        )
+        del enc_key, enc_sources
+        print(f"corrs_groupwise: {corrs[0].shape}") if verbose else None
+        print(f"masks_groupwise: {masks[0].shape}") if verbose else None
+        fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
+        del corrs, masks
+        print(f"fused_corr_groupwise: {fused_corr.shape}") if verbose else None
+        # Making fused_corr_groupwise N, S, C, H, W because the encoder changes the order again to N, C, S, H, W
+        fused_corr = fused_corr.permute(0, 2, 1, 3, 4)
+        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
         print(f"enc_fused: {enc_fused.shape}") if verbose else None
         print(
             {f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()}

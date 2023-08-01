@@ -133,16 +133,18 @@ def compute_groupwise_correlation_5D(feat_src, feat_ref, num_groups):
 
 
 class GroupWiseCorr(nn.Module):
-    def __init__(self, normalize=False, padding_mode="zeros", reshape=True):
+    def __init__(self, normalize=False, padding_mode="zeros", num_groups: int = 32):
         super().__init__()
         self.normalize = normalize
         self.padding_mode = padding_mode
-        self.reshape = reshape
+        self.num_groups = num_groups
 
     def forward(self, feat_ref, feat_src, grids=None, mask=None):
         S = grids.shape[1]
-        num_groups = 32
 
+        if self.normalize:
+            feat_src = normalize(feat_src, dim=1)
+            feat_ref = normalize(feat_ref, dim=1)
         warped_feat_src, warping_mask = warp_multi(
             x=feat_src, grids=grids, padding_mode=self.padding_mode
         )  # NSCHW, NSHW
@@ -151,26 +153,16 @@ class GroupWiseCorr(nn.Module):
         warped_feat_src = warped_feat_src.reshape(N, C, S, H, W)
         feat_ref_NCSHW = feat_ref.unsqueeze(2).repeat(1, 1, S, 1, 1)
         groupwise_corr = compute_groupwise_correlation_5D(
-            warped_feat_src, feat_ref_NCSHW, num_groups  # N, num_groups, S, H, W
+            warped_feat_src, feat_ref_NCSHW, self.num_groups  # N, num_groups, S, H, W
         )
-        if self.normalize:
-            groupwise_corr = normalize(groupwise_corr, dim=1)
 
-        if self.reshape:
-            groupwise_corr = groupwise_corr.reshape(N, S, num_groups, H, W)
-            groupwise_corr = groupwise_corr * warping_mask.unsqueeze(2)
+        groupwise_corr = groupwise_corr * warping_mask.unsqueeze(1)
 
-            if mask is not None:
-                groupwise_corr = groupwise_corr * mask.unsqueeze(2)
-                warping_mask = warping_mask * mask
-        else:
-            groupwise_corr = groupwise_corr * warping_mask.unsqueeze(1)
+        if mask is not None:
+            groupwise_corr = groupwise_corr * mask.unsqueeze(1)
+            warping_mask = warping_mask * mask
 
-            if mask is not None:
-                groupwise_corr = groupwise_corr * mask.unsqueeze(1)
-                warping_mask = warping_mask * mask
-
-        return groupwise_corr, warping_mask  # N,S,C,H,W ; N,S,H,W
+        return groupwise_corr, warping_mask  # N,num_groups,S,H,W ; N,S,H,W
 
 
 class WarpOnlyCorr(nn.Module):
@@ -517,7 +509,7 @@ class EpipolarSamplingPoints:
 
 class PlanesweepCorrelation(nn.Module):
     @torch.no_grad()
-    def __init__(self, corr_type="torch", normalize="dim"):
+    def __init__(self, corr_type="torch", normalize="dim", num_groups:int=None):
         super().__init__()
 
         self.feat_key = None
@@ -533,8 +525,11 @@ class PlanesweepCorrelation(nn.Module):
         elif corr_type == "warponly":
             self.corr_block = WarpOnlyCorr(normalize=normalize, padding_mode="zeros")
         elif corr_type == "groupwise":
+            assert (
+                num_groups is not None
+            ), "num_groups must be specified for groupwise correlation"
             self.corr_block = GroupWiseCorr(
-                normalize=normalize, padding_mode="zeros", reshape=False
+                normalize=normalize, padding_mode="zeros", num_groups=num_groups
             )
 
         self.coeffs = []
