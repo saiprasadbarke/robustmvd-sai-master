@@ -38,13 +38,14 @@ class MVSnetGroupWiseCorr(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
+        self.num_groups = 32
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise_mvsnet", normalize=False
+            corr_type="groupwise", normalize=True, num_groups=self.num_groups
         )
 
         self.fusion_block = CostvolumeFusion()
-        self.fusion_enc_block = CostvolumeEncoder()
+        self.fusion_enc_block = CostvolumeEncoder(in_channels=self.num_groups)
         self.decoder = CostvolumeDecoder()
 
         self.init_weights()
@@ -85,34 +86,28 @@ class MVSnetGroupWiseCorr(nn.Module):
         else:
             min_depth, max_depth = depth_range
         print(f"images_key: {image_key.shape}") if verbose else None
-        all_enc_key, ctx_key = self.feat_encoder(image_key)
+        all_enc_key, enc_key = self.feat_encoder(image_key)
         print(
             {f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()}
         ) if verbose else None
-        print(f"ctx: {ctx_key.shape}") if verbose else None
-        enc_final_key = all_enc_key["conv3"]
+        print(f"ctx: {enc_key.shape}") if verbose else None
         del image_key
-        print(f"enc_final: {enc_final_key.shape}") if verbose else None
 
         print(f"images_source: {images_source[0].shape}") if verbose else None
-        enc_final_sources = []
-        ctx_sources = []
-        for image_source in images_source:
-            all_enc_source, ctx_source = self.feat_encoder(image_source)
-            enc_final_sources.append(all_enc_source["conv3"])
-            ctx_sources.append(ctx_source)
+        enc_sources = [
+            self.feat_encoder(image_source)[1] for image_source in images_source
+        ]
         del images_source
-        print(f"enc_sources: {enc_final_sources[0].shape}") if verbose else None
-        print(f"ctx_sources: {ctx_sources[0].shape}") if verbose else None
+        print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
 
         (
             corrs_groupwise,
             masks_groupwise,
             sampling_invdepths,
         ) = self.corr_block_groupwise(
-            feat_key=enc_final_key,
+            feat_key=enc_key,
             intrinsics_key=intrinsics_key,
-            feat_sources=enc_final_sources,
+            feat_sources=enc_sources,
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
@@ -120,20 +115,18 @@ class MVSnetGroupWiseCorr(nn.Module):
             max_depth=max_depth,
             sampling_type="linear_depth",
         )
-        del (
-            enc_final_key,
-            enc_final_sources,
-        )
+        del enc_sources
         print(f"corrs_groupwise: {corrs_groupwise[0].shape}") if verbose else None
         print(f"masks_groupwise: {masks_groupwise[0].shape}") if verbose else None
+        # Making fused_corr_groupwise N, S, C, H, W because the encoder changes the order again to N, C, S, H, W
+        corrs = [corr.permute(0, 2, 1, 3, 4) for corr in corrs_groupwise]
         fused_corr_groupwise, _ = self.fusion_block(
-            feat_key=ctx_key, corrs=corrs_groupwise, masks=masks_groupwise
+            feat_key=enc_key, corrs=corrs, masks=masks_groupwise
         )
-        del corrs_groupwise, masks_groupwise
+        del corrs_groupwise, masks_groupwise, enc_key
         print(
             f"fused_corr_groupwise: {fused_corr_groupwise.shape}"
         ) if verbose else None
-        del ctx_key, ctx_sources
         all_enc_fused, enc_fused = self.fusion_enc_block(
             fused_corr=fused_corr_groupwise
         )
@@ -188,7 +181,7 @@ class MVSnetGroupWiseCorr(nn.Module):
 
 
 @register_model
-def mvsnet_groupwisecorr(
+def mvsnet_groupwisecorr_variancefusion(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     model = build_model_with_cfg(
