@@ -41,7 +41,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
         self.num_groups = 4
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise", normalize=True, num_groups=self.num_groups
+            corr_type="groupwise", normalize=False, num_groups=self.num_groups
         )
 
         self.fusion_block = CostvolumeFusion(in_channels=self.num_groups)

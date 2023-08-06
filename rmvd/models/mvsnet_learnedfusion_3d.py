@@ -6,15 +6,11 @@ import numpy as np
 
 from .registry import register_model
 from .helpers import build_model_with_cfg
-from .blocks.mvsnet_encoder import MVSNetEncoder as FeatEncoder
-from .blocks.planesweep_corr import PlanesweepCorrelation as CorrBlock
-from .blocks.average_fusion_3d import (
-    AverageFusion3D as CostvolumeFusion,
-)
-from .blocks.mvsnet_fused_costvolume_encoder import (
-    MVSNetFusedCostvolumeEncoder as CostvolumeEncoder,
-)
-from .blocks.mvsnet_decoder import MVSNetDecoder as CostvolumeDecoder
+from .blocks.mvsnet_encoder import MVSNetEncoder
+from .blocks.planesweep_corr import PlanesweepCorrelation
+from .blocks.learned_fusion_3d import LearnedFusion3D
+from .blocks.mvsnet_fused_costvolume_encoder import MVSNetFusedCostvolumeEncoder
+from .blocks.mvsnet_decoder import MVSNetDecoder
 
 from rmvd.utils import (
     get_torch_model_device,
@@ -23,7 +19,6 @@ from rmvd.utils import (
     select_by_index,
     exclude_index,
 )
-from rmvd.data.transforms import ResizeInputs
 from rmvd.data.transforms import (
     UpscaleInputsToNextMultipleOf,
     NormalizeIntrinsics,
@@ -34,23 +29,24 @@ from rmvd.data.transforms import (
 verbose = False
 
 
-class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
-    def __init__(self):
+class MVSNet(nn.Module):
+    def __init__(self, num_sampling_points=128, sampling_type="linear_depth"):
         super().__init__()
-        self.num_sampling_points = 128
-        self.num_groups = 4
-        self.feat_encoder = FeatEncoder()
-        self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise", normalize=True, num_groups=self.num_groups
-        )
 
-        self.fusion_block = CostvolumeFusion()
-        self.fusion_enc_block = CostvolumeEncoder(in_channels=self.num_groups)
-        self.decoder = CostvolumeDecoder()
+        base_channels = 8
+        self.num_sampling_points = num_sampling_points
+        self.sampling_type = sampling_type
+        self.encoder = MVSNetEncoder(base_channels=base_channels)
+        self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
+        self.fusion_block = LearnedFusion3D()
+        self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
+            in_channels=32, base_channels=8, batch_norm=True
+        )
+        self.decoder = MVSNetDecoder(in_channels=64)
 
         self.init_weights()
 
-    def init_weights(self):
+    def init_weights(self):  # TODO
         for m in self.modules():
             if (
                 isinstance(m, nn.Conv2d)
@@ -68,7 +64,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, keyview_idx, depth_range, **_):
+    def forward(self, images, poses, intrinsics, keyview_idx, depth_range=None, **_):
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
 
@@ -85,41 +81,32 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
             depth_range = [min_depth, max_depth]
         else:
             min_depth, max_depth = depth_range
+
         print(f"images_key: {image_key.shape}") if verbose else None
-        all_enc_key, enc_key = self.feat_encoder(image_key)
+        all_enc_key, enc_key = self.encoder(image_key)
+        print(f"enc_key: {enc_key.shape}") if verbose else None
         print(
             {f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()}
         ) if verbose else None
-        print(f"enc: {enc_key.shape}") if verbose else None
-        del image_key
-
         print(f"images_source: {images_source[0].shape}") if verbose else None
-        enc_sources = [
-            self.feat_encoder(image_source)[1] for image_source in images_source
-        ]
-        del images_source
+        enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
         print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
-
-        corrs, masks, sampling_invdepths = self.corr_block_groupwise(
+        corrs, masks, sampling_invdepths = self.corr_block(
             feat_key=enc_key,
             intrinsics_key=intrinsics_key,
             feat_sources=enc_sources,
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
+            sampling_type=self.sampling_type,
             min_depth=min_depth,
             max_depth=max_depth,
-            sampling_type="linear_depth",
         )
-        del enc_key, enc_sources
-        print(f"corrs_groupwise: {corrs[0].shape}") if verbose else None
-        print(f"masks_groupwise: {masks[0].shape}") if verbose else None
-        fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
-        del corrs, masks
-        print(f"fused_corr_groupwise: {fused_corr.shape}") if verbose else None
-        # Making fused_corr_groupwise N, S, C, H, W because the encoder changes the order again to N, C, S, H, W
-        fused_corr = fused_corr.permute(0, 2, 1, 3, 4)
-        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
+        corrs_permuted = [corr.permute(0, 2, 1, 3, 4) for corr in corrs]
+        fused_corr, _ = self.fusion_block(corrs=corrs_permuted, masks=masks)
+        print(f"fused_corr: {fused_corr.shape}") if verbose else None
+        fused_corr_permuted = fused_corr.permute(0, 2, 1, 3, 4)
+        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr_permuted)
         print(f"enc_fused: {enc_fused.shape}") if verbose else None
         print(
             {f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()}
@@ -129,6 +116,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
             sampling_invdepths=sampling_invdepths,
             all_enc={**all_enc_key, **all_enc_fused},
         )
+
         pred = {
             "depth": dec["depth"],
             "depth_uncertainty": dec["uncertainty"],
@@ -138,7 +126,7 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
 
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range, **_):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range=None):
         device = get_torch_model_device(self)
 
         resized = UpscaleInputsToNextMultipleOf(32)(
@@ -171,13 +159,18 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
 
 
 @register_model
-def mvsnet_groupwisecorr_averagefusion_withfinalenclayer(
+def mvsnet_learnedfusion_3d(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
+    assert not (
+        pretrained and weights is None
+    ), "Pretrained weights are not available for this model."
+    # weights = pretrained_weights if (pretrained and weights is None) else weights
     model = build_model_with_cfg(
-        model_cls=MVSnetGroupWiseCorrFinalEncLayer,
+        model_cls=MVSNet,
         weights=weights,
         train=train,
         num_gpus=num_gpus,
+        num_sampling_points=128,
     )
     return model
