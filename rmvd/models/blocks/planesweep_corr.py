@@ -567,11 +567,18 @@ class PlanesweepCorrelation(nn.Module):
             self.corr_block = TorchCorr(normalize=normalize, padding_mode="zeros")
         elif corr_type == "warponly":
             self.corr_block = WarpOnlyCorr(normalize=normalize, padding_mode="zeros")
-        elif corr_type == "groupwise":
+        elif corr_type == "groupwise_5D":
             assert (
                 num_groups is not None
             ), "num_groups must be specified for groupwise correlation"
-            self.corr_block = GroupWiseCorr(
+            self.corr_block = GroupWiseCorr_5D(
+                normalize=normalize, padding_mode="zeros", num_groups=num_groups
+            )
+        elif corr_type == "groupwise_4D":
+            assert (
+                num_groups is not None
+            ), "num_groups must be specified for groupwise correlation"
+            self.corr_block = GroupWiseCorr_4D(
                 normalize=normalize, padding_mode="zeros", num_groups=num_groups
             )
 

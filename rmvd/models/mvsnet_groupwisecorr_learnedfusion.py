@@ -34,14 +34,14 @@ from rmvd.data.transforms import (
 verbose = False
 
 
-class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
+class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
         self.num_groups = 4
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise", normalize=False, num_groups=self.num_groups
+            corr_type="groupwise_5D", normalize=False, num_groups=self.num_groups
         )
 
         self.fusion_block = CostvolumeFusion(in_channels=self.num_groups)
@@ -171,11 +171,11 @@ class MVSnetGroupWiseCorrFinalEncLayer(nn.Module):
 
 
 @register_model
-def mvsnet_groupwisecorr_learnedfusion_withfinalenclayer(
+def mvsnet_groupwisecorr_learnedfusion(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     model = build_model_with_cfg(
-        model_cls=MVSnetGroupWiseCorrFinalEncLayer,
+        model_cls=MVSnetGroupWiseCorrLearnedFusion,
         weights=weights,
         train=train,
         num_gpus=num_gpus,

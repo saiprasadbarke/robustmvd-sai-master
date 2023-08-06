@@ -11,17 +11,8 @@ from .mvsnet_dispnet_decoder_depth_slice_fusedcostvolume import (
     mvsnet_dispnet_decoder_depth_slice_fusedcostvolume,
 )
 from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
-from .mvsnet_groupwisecorr_variancefusion_withfinalenclayer import (
-    mvsnet_groupwisecorr_variancefusion,
-)
-from .mvsnet_groupwisecorr_learnedfusion_withfinalenclayer import (
-    mvsnet_groupwisecorr_learnedfusion_withfinalenclayer,
-)
-from .mvsnet_groupwisecorr_averagefusion_withfinalenclayer import (
-    mvsnet_groupwisecorr_averagefusion_withfinalenclayer,
-)
-from .mvsnet_groupwisecorr_variancefusion_noctx import (
-    mvsnet_groupwisecorr_variancefusion_noctx,
+from .mvsnet_groupwisecorr_learnedfusion import (
+    mvsnet_groupwisecorr_learnedfusion,
 )
 from .mvsenc_multi_corr_mvsencdec import mvsenc_multi_corr_mvsencdec
 

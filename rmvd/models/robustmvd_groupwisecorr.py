@@ -31,11 +31,12 @@ verbose = False
 class RobustMVDGroupWiseCorr(nn.Module):
     def __init__(self):
         super().__init__()
+        self.num_groups = 32
         self.num_sampling_points = 256
         self.encoder = DispnetEncoder()
         self.context_encoder = DispnetContextEncoder()
         self.corr_block_groupwise = PlanesweepCorrelation(
-            corr_type="groupwise", normalize=False
+            corr_type="groupwise_5D", normalize=False, num_groups=self.num_groups
         )
         self.fusion_block = LearnedFusion()
         self.costvolume_context_encoder = CostVolume3DContextEncoder()
