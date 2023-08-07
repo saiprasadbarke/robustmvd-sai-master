@@ -23,21 +23,29 @@ from rmvd.utils import (
     select_by_index,
     exclude_index,
 )
-from rmvd.data.transforms import ResizeInputs
+from rmvd.data.transforms import (
+    UpscaleInputsToNextMultipleOf,
+    NormalizeIntrinsics,
+    NormalizeImagesToMinMax,
+    NormalizeImagesByShiftAndScale,
+)
 
-verbose = True
+verbose = False
 
 
-class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
+class MVSNetMultiCorrLearnedFusion(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
+        self.num_groups = 4
         self.feat_encoder = FeatEncoder()
-        self.corr_block_groupwise = CorrBlock(corr_type="groupwise", normalize=True)
-        self.corr_block_warponly = CorrBlock(corr_type="warponly", normalize=False)
+        self.corr_block_groupwise = CorrBlock(
+            corr_type="groupwise_5D", normalize=True, num_groups=self.num_groups
+        )
+        self.corr_block_concat = CorrBlock(corr_type="warponly", normalize=True)
 
-        self.fusion_block = CostvolumeFusion(in_channels=self.num_sampling_points)
-        self.fusion_enc_block = CostvolumeEncoder(in_channels=64)
+        self.fusion_block = CostvolumeFusion(in_channels=(self.num_groups + 32))
+        self.fusion_enc_block = CostvolumeEncoder(in_channels=(self.num_groups + 32))
         self.decoder = CostvolumeDecoder()
 
         self.init_weights()
@@ -60,7 +68,7 @@ class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, keyview_idx, **_):
+    def forward(self, images, poses, intrinsics, keyview_idx, depth_range, **_):
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
 
@@ -68,82 +76,79 @@ class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
         intrinsics_source = exclude_index(intrinsics, keyview_idx)
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
+
+        if depth_range is None:
+            device = get_torch_model_device(self)
+            N = images[0].shape[0]
+            min_depth = torch.tensor([0.2] * N, dtype=torch.float32, device=device)
+            max_depth = torch.tensor([100.0] * N, dtype=torch.float32, device=device)
+            depth_range = [min_depth, max_depth]
+        else:
+            min_depth, max_depth = depth_range
         print(f"images_key: {image_key.shape}") if verbose else None
-        all_enc_key, ctx_key = self.feat_encoder(image_key)
+        all_enc_key, enc_key = self.feat_encoder(image_key)
         print(
             {f"all_enc_key[{k}]": v.shape for k, v in all_enc_key.items()}
         ) if verbose else None
-        print(f"ctx: {ctx_key.shape}") if verbose else None
-        enc_final_key = all_enc_key["conv3"]
+        print(f"enc_key: {enc_key.shape}") if verbose else None
         del image_key
-        print(f"enc_final: {enc_final_key.shape}") if verbose else None
 
         print(f"images_source: {images_source[0].shape}") if verbose else None
-        enc_final_sources = []
-        ctx_sources = []
-        for image_source in images_source:
-            all_enc_source, ctx_source = self.feat_encoder(image_source)
-            enc_final_sources.append(all_enc_source["conv3"])
-            ctx_sources.append(ctx_source)
+        enc_sources = [
+            self.feat_encoder(image_source)[1] for image_source in images_source
+        ]
         del images_source
-        print(f"enc_sources: {enc_final_sources[0].shape}") if verbose else None
-        print(f"ctx_sources: {ctx_sources[0].shape}") if verbose else None
+        print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
 
         (
             corrs_groupwise,
             masks_groupwise,
             sampling_invdepths,
         ) = self.corr_block_groupwise(
-            feat_key=enc_final_key,
+            feat_key=enc_key,
             intrinsics_key=intrinsics_key,
-            feat_sources=enc_final_sources,
+            feat_sources=enc_sources,
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
-            min_depth=0.4,
-            max_depth=1000.0,
+            min_depth=min_depth,
+            max_depth=max_depth,
             sampling_type="linear_depth",
-        )
-        del (
-            enc_final_key,
-            enc_final_sources,
         )
         print(f"corrs_groupwise: {corrs_groupwise[0].shape}") if verbose else None
         print(f"masks_groupwise: {masks_groupwise[0].shape}") if verbose else None
-        fused_corr_groupwise, _ = self.fusion_block(
-            corrs=corrs_groupwise, masks=masks_groupwise
-        )
-        del corrs_groupwise, masks_groupwise
-        print(
-            f"fused_corr_groupwise: {fused_corr_groupwise.shape}"
-        ) if verbose else None
+
         (
-            corrs_warponly,
-            masks_warponly,
+            corrs_concat,
+            masks_concat,
             sampling_invdepths,
-        ) = self.corr_block_warponly(
-            feat_key=ctx_key,
+        ) = self.corr_block_concat(
+            feat_key=enc_key,
             intrinsics_key=intrinsics_key,
-            feat_sources=ctx_sources,
+            feat_sources=enc_sources,
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
-            min_depth=0.4,
-            max_depth=1000.0,
+            min_depth=min_depth,
+            max_depth=max_depth,
             sampling_type="linear_depth",
         )
-        del ctx_key, ctx_sources
-        print(f"corrs_warponly: {corrs_warponly[0].shape}") if verbose else None
-        print(f"masks_warponly: {masks_warponly[0].shape}") if verbose else None
-        fused_corr_warponly, _ = self.fusion_block(
-            corrs=corrs_warponly, masks=masks_warponly
-        )
-        del corrs_warponly, masks_warponly
-        print(f"fused_corr_warponly: {fused_corr_warponly.shape}") if verbose else None
-        fused_corr_concat = torch.cat(
-            (fused_corr_groupwise, fused_corr_warponly), dim=2
-        )
-        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr_concat)
+        corrs_concat = [corr.permute(0, 2, 1, 3, 4) for corr in corrs_concat]
+        del enc_key, enc_sources
+        print(f"corrs_concat: {corrs_concat[0].shape}") if verbose else None
+        print(f"masks_concat: {masks_concat[0].shape}") if verbose else None
+        corrs = []
+        masks = []
+        for i in range(len(corrs_groupwise)):
+            corrs.append(torch.cat((corrs_groupwise[i], corrs_concat[i]), dim=1))
+            masks.append(masks_groupwise[i])
+        del corrs_groupwise, masks_groupwise, corrs_concat, masks_concat
+        fused_corr, _ = self.fusion_block(corrs=corrs, masks=masks)
+        del corrs, masks
+        print(f"fused_corr: {fused_corr.shape}") if verbose else None
+        fused_corr = fused_corr.permute(0, 2, 1, 3, 4)
+        all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
+        del fused_corr
         print(f"enc_fused: {enc_fused.shape}") if verbose else None
         print(
             {f"all_enc_fused[{k}]": v.shape for k, v in all_enc_fused.items()}
@@ -153,38 +158,32 @@ class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
             sampling_invdepths=sampling_invdepths,
             all_enc={**all_enc_key, **all_enc_fused},
         )
+        del enc_fused, all_enc_key, all_enc_fused
         pred = {
             "depth": dec["depth"],
             "depth_uncertainty": dec["uncertainty"],
         }
 
         aux = dec
-
+        del dec
         return pred, aux
 
     def input_adapter(self, images, keyview_idx, poses, intrinsics, **_):
         device = get_torch_model_device(self)
 
-        orig_ht, orig_wd = images[0].shape[-2:]
-        ht, wd = int(math.ceil(orig_ht / 64.0) * 64.0), int(
-            math.ceil(orig_wd / 64.0) * 64.0
+        resized = UpscaleInputsToNextMultipleOf(32)(
+            {"images": images, "intrinsics": intrinsics}
         )
-        if (orig_ht != ht) or (orig_wd != wd):
-            resized = ResizeInputs(size=(ht, wd))(
-                {"images": images, "intrinsics": intrinsics}
-            )
-            images = resized["images"]
-            intrinsics = resized["intrinsics"]
+        resized = NormalizeIntrinsics()(resized)
+        resized = NormalizeImagesToMinMax(min_val=0.0, max_val=1.0)(resized)
+        resized = NormalizeImagesByShiftAndScale(
+            shift=[0.485, 0.456, 0.406], scale=[0.229, 0.224, 0.225]
+        )(resized)
+        images = resized["images"]
+        intrinsics = resized["intrinsics"]
 
-        # normalize images
-        images = [image / 255.0 - 0.4 for image in images]
-
-        # model works with relative intrinsics:
-        scale_arr = np.array([[wd] * 3, [ht] * 3, [1.0] * 3], dtype=np.float32)  # 3, 3
-        intrinsics = [intrinsic / scale_arr for intrinsic in intrinsics]
-
-        images, keyview_idx, poses, intrinsics = to_torch(
-            (images, keyview_idx, poses, intrinsics), device=device
+        images, keyview_idx, poses, intrinsics, depth_range = to_torch(
+            (images, keyview_idx, poses, intrinsics, depth_range), device=device
         )
 
         sample = {
@@ -192,6 +191,7 @@ class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
             "keyview_idx": keyview_idx,
             "poses": poses,
             "intrinsics": intrinsics,
+            "depth_range": depth_range,
         }
         return sample
 
@@ -201,11 +201,11 @@ class MVSEncMultiCorrLearnedFusionMVSEncDec(nn.Module):
 
 
 @register_model
-def mvsenc_multi_corr_mvsencdec(
+def mvsnet_multicorr_learnedfusion(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     model = build_model_with_cfg(
-        model_cls=MVSEncMultiCorrLearnedFusionMVSEncDec,
+        model_cls=MVSNetMultiCorrLearnedFusion,
         weights=weights,
         train=train,
         num_gpus=num_gpus,
