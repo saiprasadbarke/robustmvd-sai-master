@@ -167,47 +167,6 @@ class GroupWiseCorr_5D(nn.Module):
         return groupwise_corr, warping_mask  # N,num_groups,S,H,W ; N,S,H,W
 
 
-def compute_groupwise_correlation_4D(feat_src, feat_ref, num_groups):
-    # Assume a and b are your 4D tensors with shape (batchsize, channels, height, width)
-    # And channels is divisible by num_groups
-    B, C, H, W = feat_src.shape
-    group_channels = C // num_groups
-
-    feat_src = feat_src.reshape(B, num_groups, group_channels, H, W)
-    feat_ref = feat_ref.reshape(B, num_groups, group_channels, H, W)
-    corr = (feat_src * feat_ref).sum(dim=2)
-    return corr  # (B, num_groups, H, W)
-
-
-class GroupWiseCorr_4D(nn.Module):
-    def __init__(self, normalize=False, padding_mode="zeros", num_groups: int = 32):
-        super().__init__()
-        self.normalize = normalize
-        self.padding_mode = padding_mode
-        self.num_groups = num_groups
-
-    def forward(self, feat_ref, feat_src, grids=None, mask=None):
-        if self.normalize:
-            feat_src = normalize(feat_src, dim=1)
-            feat_ref = normalize(feat_ref, dim=1)
-        groupwise_corr = compute_groupwise_correlation_4D(
-            feat_src, feat_ref, self.num_groups
-        )
-        warped_corr, warping_mask = warp_multi(
-            x=groupwise_corr, grids=grids, padding_mode=self.padding_mode
-        )  # NSCHW, NSHW
-
-        warped_corr = warped_corr.permute(0, 2, 1, 3, 4)
-
-        warped_corr = warped_corr * warping_mask.unsqueeze(1)
-
-        if mask is not None:
-            warped_corr = warped_corr * mask.unsqueeze(1)
-            warping_mask = warping_mask * mask
-
-        return warped_corr, warping_mask  # N,num_groups,S,H,W ; N,S,H,W
-
-
 class Concat(nn.Module):
     def __init__(self, normalize=False, padding_mode="zeros"):
         super().__init__()
@@ -600,13 +559,6 @@ class PlanesweepCorrelation(nn.Module):
                 num_groups is not None
             ), "num_groups must be specified for groupwise correlation"
             self.corr_block = GroupWiseCorr_5D(
-                normalize=normalize, padding_mode="zeros", num_groups=num_groups
-            )
-        elif corr_type == "groupwise_4D":
-            assert (
-                num_groups is not None
-            ), "num_groups must be specified for groupwise correlation"
-            self.corr_block = GroupWiseCorr_4D(
                 normalize=normalize, padding_mode="zeros", num_groups=num_groups
             )
         elif corr_type == "concat":
