@@ -208,6 +208,34 @@ class GroupWiseCorr_4D(nn.Module):
         return warped_corr, warping_mask  # N,num_groups,S,H,W ; N,S,H,W
 
 
+class Concat(nn.Module):
+    def __init__(self, normalize=False, padding_mode="zeros"):
+        super().__init__()
+        self.normalize = normalize
+        self.padding_mode = padding_mode
+
+    def forward(self, feat_ref, feat_src, grids=None, mask=None):
+        S = grids.shape[1]
+        if self.normalize:
+            feat_src = normalize(feat_src, dim=1)
+            feat_ref = normalize(feat_ref, dim=1)
+        warped_feat_src, warping_mask = warp_multi(
+            x=feat_src, grids=grids, padding_mode=self.padding_mode
+        )  # NSCHW, NSHW
+        warped_feat_src = warped_feat_src.permute(0, 2, 1, 3, 4)
+        feat_ref_NCSHW = feat_ref.unsqueeze(2).repeat(1, 1, S, 1, 1)
+
+        concat_corr = torch.cat((warped_feat_src, feat_ref_NCSHW), dim=1)
+
+        concat_corr = concat_corr * warping_mask.unsqueeze(1)
+
+        if mask is not None:
+            concat_corr = concat_corr * mask.unsqueeze(1)
+            warping_mask = warping_mask * mask
+
+        return concat_corr, warping_mask  # N,2*C,S,H,W ; N,S,H,W
+
+
 class WarpOnlyCorr(nn.Module):
     def __init__(self, normalize=False, padding_mode="zeros"):
         super().__init__()
@@ -581,6 +609,8 @@ class PlanesweepCorrelation(nn.Module):
             self.corr_block = GroupWiseCorr_4D(
                 normalize=normalize, padding_mode="zeros", num_groups=num_groups
             )
+        elif corr_type == "concat":
+            self.corr_block = Concat(normalize=normalize, padding_mode="zeros")
 
         self.coeffs = []
 
