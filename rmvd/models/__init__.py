@@ -14,6 +14,7 @@ from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
 from .mvsnet_groupwisecorr_learnedfusion import (
     mvsnet_groupwisecorr_learnedfusion,
 )
+from .mvsnet_groupwisecorr4D_learnedfusion import mvsnet_groupwisecorr4D_learnedfusion
 from .mvsnet_multi_corr_learnedfusion import mvsnet_multicorr_learnedfusion
 
 

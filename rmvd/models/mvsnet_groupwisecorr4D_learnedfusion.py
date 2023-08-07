@@ -41,7 +41,7 @@ class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
         self.num_groups = 4
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise_5D", normalize=True, num_groups=self.num_groups
+            corr_type="groupwise_4D", normalize=True, num_groups=self.num_groups
         )
 
         self.fusion_block = CostvolumeFusion(in_channels=self.num_groups)
@@ -171,7 +171,7 @@ class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
 
 
 @register_model
-def mvsnet_groupwisecorr_learnedfusion(
+def mvsnet_groupwisecorr4D_learnedfusion(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     model = build_model_with_cfg(
