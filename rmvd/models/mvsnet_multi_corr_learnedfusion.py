@@ -168,7 +168,7 @@ class MVSNetMultiCorrLearnedFusion(nn.Module):
         del dec
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses, intrinsics, **_):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range, **_):
         device = get_torch_model_device(self)
 
         resized = UpscaleInputsToNextMultipleOf(32)(
