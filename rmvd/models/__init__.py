@@ -7,6 +7,7 @@ from .robustmvd_groupwisecorr import robustmvd_groupwisecorr
 # MVSNET variants
 from .mvsnet import mvsnet_blendedmvs
 from .mvsnet_learnedfusion_3d import mvsnet_learnedfusion_3d
+from .mvsnet_averagefusion_3d import mvsnet_averagefusion_3d
 from .mvsnet_dispnet_decoder_depth_slice_fusedcostvolume import (
     mvsnet_dispnet_decoder_depth_slice_fusedcostvolume,
 )
@@ -14,6 +15,7 @@ from .mvsnet_dispnet_encoder import mvsnet_dispnet_encoder
 from .mvsnet_groupwisecorr_learnedfusion import (
     mvsnet_groupwisecorr_learnedfusion,
 )
+from .mvsnet_groupwisecorr_averagefusion import mvsnet_groupwisecorr_averagefusion
 from .mvsnet_multi_corr_learnedfusion import mvsnet_multicorr_learnedfusion
 
 
