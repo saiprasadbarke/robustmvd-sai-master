@@ -34,7 +34,7 @@ from rmvd.data.transforms import (
 verbose = False
 
 
-class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
+class MVSnetGroupWiseCorrAverageFusion(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
@@ -171,11 +171,11 @@ class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
 
 
 @register_model
-def mvsnet_groupwisecorr_learnedfusion(
+def mvsnet_groupwisecorr_averagefusion(
     pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
 ):
     model = build_model_with_cfg(
-        model_cls=MVSnetGroupWiseCorrLearnedFusion,
+        model_cls=MVSnetGroupWiseCorrAverageFusion,
         weights=weights,
         train=train,
         num_gpus=num_gpus,
