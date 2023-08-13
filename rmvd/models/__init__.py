@@ -2,7 +2,7 @@
 from .robust_mvd import robust_mvd, robust_mvd_5M
 from .robust_mvd_mvsnet_encoder import robust_mvd_mvsnet_encoder
 from .robustmvd_groupwisecorr import robustmvd_groupwisecorr
-
+from .robust_mvd_averagefusion import robust_mvd_averagefusion
 
 # MVSNET variants
 from .mvsnet import mvsnet_blendedmvs
