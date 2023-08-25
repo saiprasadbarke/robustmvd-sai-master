@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+verbose = False
+
 
 class Conv3d(nn.Module):
     """Applies a 3D convolution (optionally with batch normalization and relu activation)
@@ -129,12 +131,18 @@ class MVSNetDecoder(nn.Module):
         # sampling_invdepths has shape (N, S, H, W) or (N, S, 1, 1)
         steps = sampling_invdepths.shape[1]
 
-        conv7 = all_enc["3d_conv4"] + self.conv7(enc_fused)
-
-        conv9 = all_enc["3d_conv2"] + self.conv9(conv7)
-
-        conv11 = all_enc["3d_conv0"] + self.conv11(conv9)
-
+        conv7_a = self.conv7(enc_fused)
+        print("conv7_a.shape", conv7_a.shape) if verbose else None
+        conv7 = all_enc["3d_conv4"] + conv7_a
+        print("conv7.shape", conv7.shape) if verbose else None
+        conv9_a = self.conv9(conv7)
+        print("conv9_a.shape", conv9_a.shape) if verbose else None
+        conv9 = all_enc["3d_conv2"] + conv9_a
+        print("conv9.shape", conv9.shape) if verbose else None
+        conv11_a = self.conv11(conv9)
+        print("conv11_a.shape", conv11_a.shape) if verbose else None
+        conv11 = all_enc["3d_conv0"] + conv11_a
+        print("conv11.shape", conv11.shape) if verbose else None
         prob = self.prob(conv11)  # N1SHW
         prob = prob.squeeze(1)  # NSHW
         prob = F.softmax(prob, dim=1)  # NSHW
@@ -156,7 +164,7 @@ class MVSNetDecoder(nn.Module):
             d_indices = torch.arange(steps, device=prob.device, dtype=torch.float)
             d_indices = d_indices.view(1, -1, 1, 1)
             pred_idx = torch.sum(prob * d_indices, dim=1, keepdim=True).long()  # N1HW
-            # pred_idx = pred_idx.clamp(min=0, max=steps-1)
+            pred_idx = pred_idx.clamp(min=0, max=steps - 1)
             # # the confidence is the 4-sum probability at this index:
             pred_depth_confidence = torch.gather(prob_sum4, 1, pred_idx)
 

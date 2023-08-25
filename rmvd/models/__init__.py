@@ -17,8 +17,7 @@ from .mvsnet_groupwisecorr_learnedfusion import (
 )
 from .mvsnet_groupwisecorr_averagefusion import mvsnet_groupwisecorr_averagefusion
 from .mvsnet_multi_corr_learnedfusion import mvsnet_multicorr_learnedfusion
-
-
+from .mvsnet_cascade import mvsnet_cascade
 from .dpt import dpt_large_kitti
 from .supervised_monodepth2 import supervised_monodepth2
 from .wrappers.monodepth2 import (

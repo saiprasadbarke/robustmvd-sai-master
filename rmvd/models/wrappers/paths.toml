@@ -2,7 +2,7 @@
     root = '/tmp/monodepth2'
 
 [mvsnet_pl]
-    root = '/tmp/mvsnet_pl'
+    root = '/home/barkes/MVSNet_pl'
 
 [midas]
     root = '/tmp/midas'
@@ -11,10 +11,13 @@
     root = '/tmp/patchmatchnet'
 
 [cvp_mvsnet]
-    root = '/tmp/cvp_mvsnet'
+    root = '/home/barkes/CVP-MVSNet'
 
 [vis_mvsnet]
     root = '/home/barkes/Vis-MVSNet'
 
 [gmdepth]
     root = '/tmp/gmdepth'
+
+[cas_mvsnet]
+    root = '/home/barkes/CasMVSNet_pl'
