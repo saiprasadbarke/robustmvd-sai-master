@@ -596,7 +596,11 @@ class PlanesweepCorrelation(nn.Module):
         self.init_coeffs()
 
         sampling_invdepths = self.get_sampling_invdepths(
-            num_sampling_points, min_depth, max_depth, sampling_invdepths, sampling_type
+            num_sampling_points,
+            min_depth,
+            max_depth,
+            sampling_invdepths,
+            sampling_type,
         )
         self.get_plane_sweep_sampling_points(sampling_invdepths=sampling_invdepths)
 
@@ -657,7 +661,10 @@ class PlanesweepCorrelation(nn.Module):
             assert num_sampling_points is not None
             assert sampling_type is not None
             sampling_invdepths = compute_sampling_invdepths(
-                min_depth, max_depth, num_sampling_points, sampling_type
+                min_depth,
+                max_depth,
+                num_sampling_points,
+                sampling_type,
             )
         else:
             assert (
@@ -727,15 +734,22 @@ def compute_sampling_invdepths(
     if isinstance(max_depth, np.float32) or isinstance(max_depth, float):
         max_depth = torch.tensor([max_depth])
 
-    min_depth = to_torch(min_depth)[..., None]  # shape [1, 1] or [N, 1]
-    max_depth = to_torch(max_depth)[..., None]  # shape [1, 1] or [N, 1]
+    min_depth = (
+        to_torch(min_depth)[..., None] if len(min_depth.shape) == 1 else min_depth
+    )  # shape [1, 1] or [N, 1]
+    max_depth = (
+        to_torch(max_depth)[..., None] if len(max_depth.shape) == 1 else max_depth
+    )  # shape [1, 1] or [N, 1]
     min_invdepth = 1 / max_depth
     max_invdepth = 1 / min_depth
     steps = torch.arange(
         0, num_samples, dtype=min_invdepth.dtype, device=min_invdepth.device
-    )[
-        None, ...
-    ]  # shape [1, num_samples]
+    )
+    steps = (
+        steps.view(1, num_samples)
+        if len(min_depth.shape) == 1
+        else steps.view(1, num_samples, 1, 1)
+    )
 
     if sampling_type == "linear_invdepth":
         sampling_invdepths = min_invdepth + steps * (max_invdepth - min_invdepth) / (
@@ -744,7 +758,7 @@ def compute_sampling_invdepths(
     elif sampling_type == "linear_depth":
         sampling_invdepths = 1 / (
             min_depth + steps * (max_depth - min_depth) / (num_samples - 1)
-        )  # shape [1, num_samples] or [N, num_samples]
+        +1e-9)  # shape [1, num_samples] or [N, num_samples]
         sampling_invdepths = sampling_invdepths.flip(1)
 
     return sampling_invdepths  # shape [1, num_samples] or [N, num_samples]
