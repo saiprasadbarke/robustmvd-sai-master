@@ -757,8 +757,8 @@ def compute_sampling_invdepths(
         )  # shape [1, num_samples] or [N, num_samples]
     elif sampling_type == "linear_depth":
         sampling_invdepths = 1 / (
-            min_depth + steps * (max_depth - min_depth) / (num_samples - 1)
-        +1e-9)  # shape [1, num_samples] or [N, num_samples]
+            min_depth + steps * (max_depth - min_depth) / (num_samples - 1) + 1e-9
+        )  # shape [1, num_samples] or [N, num_samples]
         sampling_invdepths = sampling_invdepths.flip(1)
 
     return sampling_invdepths  # shape [1, num_samples] or [N, num_samples]

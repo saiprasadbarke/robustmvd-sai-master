@@ -115,6 +115,6 @@ class FeaturePyramidNet(nn.Module):
         feat0 = self.smooth0(feat0)  # (B, 8, H, W)
         print("fpn_smooth_feat0.shape: ", feat0.shape) if verbose else None
 
-        feats = {"level_0": feat0, "level_1": feat1, "level_2": feat2}
+        feats = {"level_0": feat2, "level_1": feat1, "level_2": feat0}
 
         return feats

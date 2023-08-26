@@ -38,8 +38,8 @@ class MVSNet_Cascade(nn.Module):
         self.num_sampling_points = 128
         self.sampling_type = "linear_depth"
         self.levels = 3
-        self.n_depths = [8, 16, 32]
-        self.interval_ratios = [1, 2, 4]
+        self.n_depths = [32, 16, 8]
+        self.interval_ratios = [4, 2, 1]
         self.encoder = FeaturePyramidNet()
         self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
         self.fusion_block = VarianceCostvolumeFusion()
@@ -49,10 +49,12 @@ class MVSNet_Cascade(nn.Module):
             fusion_enc_block_dict[
                 f"fusion_enc_block_{level}"
             ] = MVSNetFusedCostvolumeEncoder(
-                in_channels=8 * (2**level), base_channels=8, batch_norm=True
+                in_channels=8 * self.interval_ratios[level],
+                base_channels=8,
+                batch_norm=True,
             )
             fusion_dec_block_dict[f"fusion_dec_block_{level}"] = MVSNetDecoder(
-                in_channels=64
+                in_channels=64, batch_norm=True
             )
 
         for level in range(self.levels):
@@ -113,7 +115,7 @@ class MVSNet_Cascade(nn.Module):
         all_enc_sources = [self.encoder(image_source) for image_source in images_source]
         del images_source
         results = {}
-        for level in reversed(range(self.levels)):
+        for level in range(self.levels):
             D = self.n_depths[level]
             feat_key = all_enc_key[f"level_{level}"]
             feat_sources = [
@@ -122,40 +124,44 @@ class MVSNet_Cascade(nn.Module):
             delta = D / 2 * self.interval_ratios[level] * depth_interval
             upscaled_prev_level_depth = (
                 F.interpolate(
-                    results.get(f"depth_{level+1}").detach(),
+                    results.get(f"depth_{level-1}").detach(),
                     scale_factor=2,
                     mode="bilinear",
                     align_corners=False,
                 )
-                if f"depth_{level+1}" in results
+                if f"depth_{level-1}" in results
                 else None
             )
-            intrinsics_key[:, 0, 0] /= 2**level
-            intrinsics_key[:, 1, 1] /= 2**level
-            intrinsics_key[:, 0, 2] /= 2**level
-            intrinsics_key[:, 1, 2] /= 2**level
+            current_level_intrinsics_key = intrinsics_key.clone()
+            current_level_intrinsics_key[:, 0, 0] *= 2**level
+            current_level_intrinsics_key[:, 1, 1] *= 2**level
+            current_level_intrinsics_key[:, 0, 2] *= 2**level
+            current_level_intrinsics_key[:, 1, 2] *= 2**level
 
+            current_level_intrinsics_sources = []
             for intrinsics_source in intrinsics_sources:
-                intrinsics_source[:, 0, 0] /= 2**level
-                intrinsics_source[:, 1, 1] /= 2**level
-                intrinsics_source[:, 0, 2] /= 2**level
-                intrinsics_source[:, 1, 2] /= 2**level
+                current_level_intrinscs_source = intrinsics_source.clone()
+                current_level_intrinscs_source[:, 0, 0] *= 2**level
+                current_level_intrinscs_source[:, 1, 1] *= 2**level
+                current_level_intrinscs_source[:, 0, 2] *= 2**level
+                current_level_intrinscs_source[:, 1, 2] *= 2**level
+                current_level_intrinsics_sources.append(current_level_intrinscs_source)
             min_depth = (
-                min_depth * self.interval_ratios[level]
-                if level == self.levels - 1
+                min_depth  # * self.interval_ratios[level]
+                if level == 0
                 else upscaled_prev_level_depth - delta
             )
             max_depth = (
-                max_depth * self.interval_ratios[level]
-                if level == self.levels - 1
+                max_depth  # * self.interval_ratios[level]
+                if level == 0
                 else upscaled_prev_level_depth + delta
             )
             corrs, masks, sampling_invdepths = self.corr_block(
                 feat_key=feat_key,
-                intrinsics_key=intrinsics_key,
+                intrinsics_key=current_level_intrinsics_key,
                 feat_sources=feat_sources,
                 source_to_key_transforms=source_to_key_transforms,
-                intrinsics_sources=intrinsics_sources,
+                intrinsics_sources=current_level_intrinsics_sources,
                 num_sampling_points=D,
                 sampling_type=self.sampling_type,
                 min_depth=min_depth,
@@ -180,7 +186,7 @@ class MVSNet_Cascade(nn.Module):
             dec = getattr(self, f"cost_reg_{level}")[1](
                 enc_fused=enc_fused,
                 sampling_invdepths=sampling_invdepths,
-                all_enc={**all_enc_key, **all_enc_fused},
+                all_enc=all_enc_fused,
             )
             del enc_fused, all_enc_fused, sampling_invdepths
 
@@ -190,13 +196,12 @@ class MVSNet_Cascade(nn.Module):
             del dec
 
         aux = {}
-        aux["invdepths_all"] = [
-            results.get(f"aux_{level}").get("invdepth")
-            for level in reversed(range(self.levels))
+        aux["depths_all"] = [
+            results.get(f"depth_{level}") for level in range(self.levels)
         ]  # sorted from lowest to highest resolution
         pred = {
-            "depth": results.get(f"depth_{0}"),
-            "depth_uncertainty": results.get(f"depth_uncertainty_{0}"),
+            "depth": results.get(f"depth_{2}"),
+            "depth_uncertainty": results.get(f"depth_uncertainty_{2}"),
         }
 
         return pred, aux

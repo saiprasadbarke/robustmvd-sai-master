@@ -15,6 +15,7 @@ class MultiScaleMAE(nn.Module):
         gt_interpolation="nearest",
         modality="invdepth",
         verbose=True,
+        loss_weights=None,
     ):
         super().__init__()
 
@@ -26,9 +27,7 @@ class MultiScaleMAE(nn.Module):
         self.weight_decay = weight_decay
         self.gt_interpolation = gt_interpolation
 
-        # self.loss_weights = [1 / 8, 1 / 4, 1 / 2, 1]
-        # self.loss_weights = [100 * 1050 * weight for weight in self.loss_weights]
-        self.loss_weights = [1 / 2, 1, 2]  # weights for cas-mvsnet
+        self.loss_weights = loss_weights
 
         self.modality = modality
 
@@ -124,6 +123,23 @@ class MultiScaleMAE(nn.Module):
 
 @register_loss
 def supervised_monodepth2_loss(**kwargs):
+    loss_weights = [1 / 8, 1 / 4, 1 / 2, 1]
+    loss_weights = [100 * 1050 * weight for weight in loss_weights]
     return MultiScaleMAE(
-        weight_decay=0.0, gt_interpolation="nearest", modality="invdepth", **kwargs
+        weight_decay=0.0,
+        gt_interpolation="nearest",
+        modality="invdepth",
+        loss_weights=loss_weights,
+        **kwargs,
+    )
+
+
+@register_loss
+def cas_mvsnet_loss(**kwargs):
+    return MultiScaleMAE(
+        weight_decay=0.0,
+        gt_interpolation="nearest",
+        modality="depth",
+        loss_weights=[0.5, 1, 2],
+        **kwargs,
     )
