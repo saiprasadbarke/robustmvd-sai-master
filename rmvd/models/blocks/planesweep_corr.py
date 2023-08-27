@@ -583,7 +583,6 @@ class PlanesweepCorrelation(nn.Module):
         max_depth=None,
         sampling_invdepths=None,
         sampling_type="linear_invdepth",
-        interval_ratio=1,
     ):
         self.feat_key = feat_key
         self.feat_key_width, self.feat_key_height = feat_key.shape[3], feat_key.shape[2]
@@ -602,7 +601,6 @@ class PlanesweepCorrelation(nn.Module):
             max_depth,
             sampling_invdepths,
             sampling_type,
-            interval_ratio,
         )
         self.get_plane_sweep_sampling_points(sampling_invdepths=sampling_invdepths)
 
@@ -657,7 +655,6 @@ class PlanesweepCorrelation(nn.Module):
         max_depth=None,
         sampling_invdepths=None,
         sampling_type="linear_invdepth",
-        interval_ratio=1,
     ):
         if min_depth is not None and max_depth is not None:
             assert sampling_invdepths is None
@@ -668,7 +665,6 @@ class PlanesweepCorrelation(nn.Module):
                 max_depth,
                 num_sampling_points,
                 sampling_type,
-                interval_ratio,
             )
         else:
             assert (
@@ -724,7 +720,10 @@ class PlanesweepCorrelation(nn.Module):
 
 
 def compute_sampling_invdepths(
-    min_depth, max_depth, num_samples, sampling_type="linear_invdepth", interval_ratio=1
+    min_depth,
+    max_depth,
+    num_samples,
+    sampling_type="linear_invdepth",
 ):
     """Compute the inverse depth values for the sampling points.
 
@@ -733,39 +732,29 @@ def compute_sampling_invdepths(
         max_depth: Maximum depth value. Can be: float, torch.Tensor of shape [N], numpy.ndarray of shape (N,).
         num_samples (int): Number of sampling points.
     """
+    assert min_depth is not None and max_depth is not None and num_samples is not None
     if isinstance(min_depth, np.float32) or isinstance(min_depth, float):
         min_depth = torch.tensor([min_depth])
     if isinstance(max_depth, np.float32) or isinstance(max_depth, float):
         max_depth = torch.tensor([max_depth])
 
-    min_depth = (
-        to_torch(min_depth)[..., None] if len(min_depth.shape) == 1 else min_depth
-    )  # shape [1, 1] or [N, 1]
-    max_depth = (
-        to_torch(max_depth)[..., None] if len(max_depth.shape) == 1 else max_depth
-    )  # shape [1, 1] or [N, 1]
+    min_depth = to_torch(min_depth)[..., None]
+    # shape [1, 1] or [N, 1]
+    max_depth = to_torch(max_depth)[..., None]
+    # shape [1, 1] or [N, 1]
     min_invdepth = 1 / max_depth
     max_invdepth = 1 / min_depth
     steps = torch.arange(
         0, num_samples, dtype=min_invdepth.dtype, device=min_invdepth.device
-    )
-    steps = (
-        steps.view(1, num_samples)
-        if len(min_depth.shape) == 1
-        else steps.view(1, num_samples, 1, 1)
-    )
+    )[..., None]
 
     if sampling_type == "linear_invdepth":
-        sampling_invdepths = min_invdepth + steps * interval_ratio * (
-            max_invdepth - min_invdepth
-        ) / (
+        sampling_invdepths = min_invdepth + steps * (max_invdepth - min_invdepth) / (
             num_samples - 1
         )  # shape [1, num_samples] or [N, num_samples]
     elif sampling_type == "linear_depth":
         sampling_invdepths = 1 / (
-            min_depth
-            + steps * interval_ratio * (max_depth - min_depth) / (num_samples - 1)
-            + 1e-9
+            min_depth + steps * (max_depth - min_depth) / (num_samples - 1)
         )  # shape [1, num_samples] or [N, num_samples]
         sampling_invdepths = sampling_invdepths.flip(1)
 

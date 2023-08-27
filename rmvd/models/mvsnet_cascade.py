@@ -36,7 +36,6 @@ class MVSNet_Cascade(nn.Module):
         super().__init__()
 
         self.num_sampling_points = 128
-        self.sampling_type = "linear_depth"
         self.levels = 3
         self.n_depths = [32, 16, 8]
         self.interval_ratios = [4, 2, 1]
@@ -117,11 +116,16 @@ class MVSNet_Cascade(nn.Module):
         results = {}
         for level in range(self.levels):
             D = self.n_depths[level]
+            # Get features for current level
             feat_key = all_enc_key[f"level_{level}"]
             feat_sources = [
                 all_enc_source[f"level_{level}"] for all_enc_source in all_enc_sources
             ]
-            delta = D / 2 * self.interval_ratios[level] * depth_interval
+            # Get depth interval for current level
+            current_depth_interval = depth_interval * self.interval_ratios[level]
+            current_depth_interval = current_depth_interval.view(1, 1, 1, 1)
+            delta = D / 2 * current_depth_interval
+            # Get depth start for current level
             prev_level_depth = (
                 results.get(f"depth_{level-1}").detach() if level > 0 else None
             )
@@ -135,6 +139,21 @@ class MVSNet_Cascade(nn.Module):
                 if prev_level_depth is not None
                 else None
             )
+            depth_start = (
+                min_depth.view(1, 1, 1, 1)
+                if level == 0
+                else torch.clamp_min(upscaled_prev_level_depth - delta, 1e-7)
+            )
+            # Get sampling invdepths for current level
+            steps = torch.arange(
+                0, D, dtype=feat_key.dtype, device=feat_key.device
+            ).view(1, D, 1, 1)
+
+            sampling_invdepths = 1 / (
+                depth_start + steps * current_depth_interval
+            ).flip(1)
+
+            # Get intrinsics for current level
             current_level_intrinsics_key = intrinsics_key.clone()
             current_level_intrinsics_key[:, 0, 0] *= 2**level
             current_level_intrinsics_key[:, 1, 1] *= 2**level
@@ -149,19 +168,15 @@ class MVSNet_Cascade(nn.Module):
                 current_level_intrinscs_source[:, 0, 2] *= 2**level
                 current_level_intrinscs_source[:, 1, 2] *= 2**level
                 current_level_intrinsics_sources.append(current_level_intrinscs_source)
-            min_depth = min_depth if level == 0 else upscaled_prev_level_depth - delta
-            max_depth = max_depth if level == 0 else upscaled_prev_level_depth + delta
+
+            # Get corrs and masks for current level
             corrs, masks, sampling_invdepths = self.corr_block(
                 feat_key=feat_key,
                 intrinsics_key=current_level_intrinsics_key,
                 feat_sources=feat_sources,
                 source_to_key_transforms=source_to_key_transforms,
                 intrinsics_sources=current_level_intrinsics_sources,
-                num_sampling_points=D,
-                sampling_type=self.sampling_type,
-                min_depth=min_depth,
-                max_depth=max_depth,
-                interval_ratio=self.interval_ratios[level] if level == 0 else 1,
+                sampling_invdepths=sampling_invdepths,
             )
             print(f"corrs_{level}: {corrs[0].shape}") if verbose else None
             print(f"masks_{level}: {masks[0].shape}") if verbose else None
@@ -191,13 +206,25 @@ class MVSNet_Cascade(nn.Module):
             results[f"aux_{level}"] = dec
             del dec
 
-        aux = {}
-        aux["depths_all"] = [
-            results.get(f"depth_{level}") for level in range(self.levels)
-        ]  # sorted from lowest to highest resolution
+        # sorted from lowest to highest resolution
+        aux = {
+            "depths_all": [
+                results.get(f"depth_{level}") for level in range(self.levels)
+            ],
+            "depth_uncertainties_all": [
+                results.get(f"depth_uncertainty_{level}")
+                for level in range(self.levels)
+            ],
+            "invdepths_all": [
+                results.get(f"aux_{level}").get("invdepth")
+                for level in range(self.levels)
+            ],
+        }
+
         pred = {
             "depth": results.get(f"depth_{2}"),
             "depth_uncertainty": results.get(f"depth_uncertainty_{2}"),
+            "invdepth": results.get(f"aux_{2}").get("invdepth"),
         }
 
         return pred, aux
