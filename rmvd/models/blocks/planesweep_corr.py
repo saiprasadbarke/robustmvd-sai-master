@@ -583,6 +583,7 @@ class PlanesweepCorrelation(nn.Module):
         max_depth=None,
         sampling_invdepths=None,
         sampling_type="linear_invdepth",
+        interval_ratio=1,
     ):
         self.feat_key = feat_key
         self.feat_key_width, self.feat_key_height = feat_key.shape[3], feat_key.shape[2]
@@ -601,6 +602,7 @@ class PlanesweepCorrelation(nn.Module):
             max_depth,
             sampling_invdepths,
             sampling_type,
+            interval_ratio,
         )
         self.get_plane_sweep_sampling_points(sampling_invdepths=sampling_invdepths)
 
@@ -655,6 +657,7 @@ class PlanesweepCorrelation(nn.Module):
         max_depth=None,
         sampling_invdepths=None,
         sampling_type="linear_invdepth",
+        interval_ratio=1,
     ):
         if min_depth is not None and max_depth is not None:
             assert sampling_invdepths is None
@@ -665,6 +668,7 @@ class PlanesweepCorrelation(nn.Module):
                 max_depth,
                 num_sampling_points,
                 sampling_type,
+                interval_ratio,
             )
         else:
             assert (
@@ -720,7 +724,7 @@ class PlanesweepCorrelation(nn.Module):
 
 
 def compute_sampling_invdepths(
-    min_depth, max_depth, num_samples, sampling_type="linear_invdepth"
+    min_depth, max_depth, num_samples, sampling_type="linear_invdepth", interval_ratio=1
 ):
     """Compute the inverse depth values for the sampling points.
 
@@ -752,12 +756,16 @@ def compute_sampling_invdepths(
     )
 
     if sampling_type == "linear_invdepth":
-        sampling_invdepths = min_invdepth + steps * (max_invdepth - min_invdepth) / (
+        sampling_invdepths = min_invdepth + steps * interval_ratio * (
+            max_invdepth - min_invdepth
+        ) / (
             num_samples - 1
         )  # shape [1, num_samples] or [N, num_samples]
     elif sampling_type == "linear_depth":
         sampling_invdepths = 1 / (
-            min_depth + steps * (max_depth - min_depth) / (num_samples - 1) + 1e-9
+            min_depth
+            + steps * interval_ratio * (max_depth - min_depth) / (num_samples - 1)
+            + 1e-9
         )  # shape [1, num_samples] or [N, num_samples]
         sampling_invdepths = sampling_invdepths.flip(1)
 

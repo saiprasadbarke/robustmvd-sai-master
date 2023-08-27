@@ -122,14 +122,17 @@ class MVSNet_Cascade(nn.Module):
                 all_enc_source[f"level_{level}"] for all_enc_source in all_enc_sources
             ]
             delta = D / 2 * self.interval_ratios[level] * depth_interval
+            prev_level_depth = (
+                results.get(f"depth_{level-1}").detach() if level > 0 else None
+            )
             upscaled_prev_level_depth = (
                 F.interpolate(
-                    results.get(f"depth_{level-1}").detach(),
+                    prev_level_depth,
                     scale_factor=2,
                     mode="bilinear",
                     align_corners=False,
                 )
-                if f"depth_{level-1}" in results
+                if prev_level_depth is not None
                 else None
             )
             current_level_intrinsics_key = intrinsics_key.clone()
@@ -146,16 +149,8 @@ class MVSNet_Cascade(nn.Module):
                 current_level_intrinscs_source[:, 0, 2] *= 2**level
                 current_level_intrinscs_source[:, 1, 2] *= 2**level
                 current_level_intrinsics_sources.append(current_level_intrinscs_source)
-            min_depth = (
-                min_depth  # * self.interval_ratios[level]
-                if level == 0
-                else upscaled_prev_level_depth - delta
-            )
-            max_depth = (
-                max_depth  # * self.interval_ratios[level]
-                if level == 0
-                else upscaled_prev_level_depth + delta
-            )
+            min_depth = min_depth if level == 0 else upscaled_prev_level_depth - delta
+            max_depth = max_depth if level == 0 else upscaled_prev_level_depth + delta
             corrs, masks, sampling_invdepths = self.corr_block(
                 feat_key=feat_key,
                 intrinsics_key=current_level_intrinsics_key,
@@ -166,6 +161,7 @@ class MVSNet_Cascade(nn.Module):
                 sampling_type=self.sampling_type,
                 min_depth=min_depth,
                 max_depth=max_depth,
+                interval_ratio=self.interval_ratios[level] if level == 0 else 1,
             )
             print(f"corrs_{level}: {corrs[0].shape}") if verbose else None
             print(f"masks_{level}: {masks[0].shape}") if verbose else None
