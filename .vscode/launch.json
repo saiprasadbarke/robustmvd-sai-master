@@ -207,7 +207,7 @@
             ],
         },
         {
-            "name": "Python:  Train mvsnet_cascade ",
+            "name": "Python:  Train mvsnet_dino ",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/train.py",
@@ -217,15 +217,15 @@
                 "--training_type",
                 "mvd",
                 "--output",
-                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_cascade/run1",
+                "/work/dlclarge1/barkes-barke-master/robustmvd/debug/training/mvsnet_dino/run1",
                 "--num_gpus",
-                "1",
+                "2",
                 "--batch_size",
                 "1",
                 "--max_iterations",
                 "160000",
                 "--model",
-                "mvsnet_cascade",
+                "mvsnet_dino",
                 "--inputs",
                 "poses",
                 "intrinsics",
@@ -235,7 +235,7 @@
                 "--lr",
                 "1e-3",
                 "--loss",
-                "cas_mvsnet_loss",
+                "mvsnet_loss",
                 "--dataset",
                 "blendedmvs.train_mvsnet.mvd",
                 "--scheduler",
@@ -245,9 +245,9 @@
                 "--augmentations",
                 "mvsnet_augmentations",
             ],
-            "env": {
-                "CUDA_LAUNCH_BLOCKING": "1"
-            }
+            // "env": {
+            //     "CUDA_LAUNCH_BLOCKING": "1"
+            // }
         },
         {
             "name": "Python:  Eval mvsnet ",
