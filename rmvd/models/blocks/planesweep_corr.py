@@ -746,7 +746,7 @@ def compute_sampling_invdepths(
     max_invdepth = 1 / min_depth
     steps = torch.arange(
         0, num_samples, dtype=min_invdepth.dtype, device=min_invdepth.device
-    )[..., None]
+    )[None, ...]
 
     if sampling_type == "linear_invdepth":
         sampling_invdepths = min_invdepth + steps * (max_invdepth - min_invdepth) / (
