@@ -168,6 +168,5 @@ def mvsnet_blendedmvs(pretrained=True, weights=None, train=False, num_gpus=1, **
         weights=weights,
         train=train,
         num_gpus=num_gpus,
-        num_sampling_points=128,
     )
     return model
