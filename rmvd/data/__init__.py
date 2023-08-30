@@ -34,6 +34,7 @@ from .augmentations import (
     robust_mvd_augmentations_blendedmvs,
     supervised_monodepth2_augmentations,
     mvsnet_augmentations,
+    mvsnet_augmentations_dino,
     dpt_augmentations,
 )
 from .batch_augmentations import robust_mvd_batch_augmentations
