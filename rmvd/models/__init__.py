@@ -19,6 +19,8 @@ from .mvsnet_groupwisecorr_averagefusion import mvsnet_groupwisecorr_averagefusi
 from .mvsnet_multi_corr_learnedfusion import mvsnet_multicorr_learnedfusion
 from .mvsnet_cascade import mvsnet_cascade
 from .mvsnet_dino import mvsnet_dino
+from .mvsnet_dino_faster_concat import mvsnet_dino_faster_concat
+from .mvsnet_dino_faster_add import mvsnet_dino_faster_add
 from .mvsnet_wo_depth import mvsnet_blendedmvs_wo_depth
 
 from .dpt import dpt_large_kitti

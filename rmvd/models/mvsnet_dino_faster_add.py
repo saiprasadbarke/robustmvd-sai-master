@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
+import torchvision.transforms as transforms
 from .registry import register_model
 from .helpers import build_model_with_cfg
 from .blocks.mvsnet_encoder import MVSNetEncoder
@@ -49,19 +49,16 @@ class MVSNet_DINO(nn.Module):
         self.dino_extractor = DINOExtractor(
             model_type="dino_vits8", device="cuda:1", stride=self.dino_stride
         )
-        self.decoder_vit = VITDecoderStage4Single(mode="concat")
+        self.decoder_vit = VITDecoderStage4Single()
         self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
         self.fusion_block = VarianceCostvolumeFusion()
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
-            in_channels=96, base_channels=8, batch_norm=True
+            in_channels=32, base_channels=8, batch_norm=True
         )
 
         self.decoder = MVSNetDecoder(in_channels=64)
 
         self.init_weights()
-        # freeze model
-        for param in self.dino_extractor.model.parameters():
-            param.requires_grad = False
 
     def init_weights(self):  # TODO
         for m in self.modules():
@@ -99,6 +96,7 @@ class MVSNet_DINO(nn.Module):
         else:
             min_depth, max_depth = depth_range
         N, _, H, W = images[0].shape
+        vit_h, vit_w = int(H / 2), int(W / 2)
         print(f"images_key: {image_key.shape}") if verbose else None
         all_enc_key, enc_key = self.encoder(image_key)
         print(f"enc_key: {enc_key.shape}") if verbose else None
@@ -109,31 +107,44 @@ class MVSNet_DINO(nn.Module):
         enc_sources = [self.encoder(image_source)[1] for image_source in images_source]
         print(f"enc_sources: {enc_sources[0].shape}") if verbose else None
 
+        downscale_half_vit = transforms.Resize((vit_h, vit_w), antialias=True)
+        image_key = downscale_half_vit(image_key)
+        images_source = [
+            downscale_half_vit(image_source) for image_source in images_source
+        ]
+
+        normalize_half_vit = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        )
+        image_key = normalize_half_vit(image_key)
+        images_source = [
+            normalize_half_vit(image_source) for image_source in images_source
+        ]
+
+        image_key = image_key.to("cuda:1")
+        images_source = [image_source.to("cuda:1") for image_source in images_source]
         # DINO features
-        dino_features_key = self.dino_extractor.extract_descriptors(
-            image_key.to("cuda:1")
-        )
-        dino_features_sources = [
-            self.dino_extractor.extract_descriptors(image_source.to("cuda:1"))
-            for image_source in images_source
-        ]
-        dino_saliency_key = self.dino_extractor.extract_saliency_maps(
-            image_key.to("cuda:1")
-        )
-        dino_saliency_sources = [
-            self.dino_extractor.extract_saliency_maps(image_source.to("cuda:1"))
-            for image_source in images_source
-        ]
+        with torch.no_grad():
+            dino_features_key = self.dino_extractor.extract_descriptors(image_key)
+            dino_features_sources = [
+                self.dino_extractor.extract_descriptors(image_source)
+                for image_source in images_source
+            ]
+            dino_saliency_key = self.dino_extractor.extract_saliency_maps(image_key)
+            dino_saliency_sources = [
+                self.dino_extractor.extract_saliency_maps(image_source)
+                for image_source in images_source
+            ]
         dino_features_key = (
             dino_features_key.reshape(
-                N, H // self.dino_stride, W // self.dino_stride, -1
+                N, vit_h // (self.dino_stride), vit_w // (self.dino_stride), -1
             )
             .permute(0, 3, 1, 2)
             .cuda(0)
         )
         dino_saliency_key = (
             dino_saliency_key.reshape(
-                N, H // self.dino_stride, W // self.dino_stride, -1
+                N, vit_h // (self.dino_stride), vit_w // (self.dino_stride), -1
             )
             .permute(0, 3, 1, 2)
             .cuda(0)
@@ -141,7 +152,7 @@ class MVSNet_DINO(nn.Module):
 
         dino_features_sources = [
             dino_features_source.reshape(
-                N, H // self.dino_stride, W // self.dino_stride, -1
+                N, vit_h // (self.dino_stride), vit_w // (self.dino_stride), -1
             )
             .permute(0, 3, 1, 2)
             .cuda(0)
@@ -150,7 +161,7 @@ class MVSNet_DINO(nn.Module):
 
         dino_saliency_sources = [
             dino_saliency_source.reshape(
-                N, H // self.dino_stride, W // self.dino_stride, -1
+                N, vit_h // (self.dino_stride), vit_w // (self.dino_stride), -1
             )
             .permute(0, 3, 1, 2)
             .cuda(0)
@@ -166,20 +177,10 @@ class MVSNet_DINO(nn.Module):
                 dino_features_sources, dino_saliency_sources
             )
         ]
-        dino_feat_key_attn = F.interpolate(
-            dino_feat_key_attn, size=enc_key.shape[-2:], mode="bilinear"
-        )
-        dino_feat_sources_attn = [
-            F.interpolate(
-                dino_feat_source_attn, size=enc_source.shape[-2:], mode="bilinear"
-            )
-            for dino_feat_source_attn, enc_source in zip(
-                dino_feat_sources_attn, enc_sources
-            )
-        ]
-        concat_feat_key = torch.cat([enc_key, dino_feat_key_attn], dim=1)
-        concat_feat_sources = [
-            torch.cat([enc_source, dino_feat_source_attn], dim=1)
+
+        add_feat_key = enc_key + dino_feat_key_attn
+        add_feat_sources = [
+            enc_source + dino_feat_source_attn
             for enc_source, dino_feat_source_attn in zip(
                 enc_sources, dino_feat_sources_attn
             )
@@ -196,9 +197,9 @@ class MVSNet_DINO(nn.Module):
             enc_sources,
         )
         corrs, masks, sampling_invdepths = self.corr_block(
-            feat_key=concat_feat_key,
+            feat_key=add_feat_key,
             intrinsics_key=intrinsics_key,
-            feat_sources=concat_feat_sources,
+            feat_sources=add_feat_sources,
             source_to_key_transforms=source_to_key_transforms,
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
@@ -206,12 +207,12 @@ class MVSNet_DINO(nn.Module):
             min_depth=min_depth,
             max_depth=max_depth,
         )
-        del concat_feat_sources
+        del add_feat_sources
         fused_corr, _ = self.fusion_block(
-            feat_key=concat_feat_key, corrs=corrs, masks=masks
+            feat_key=add_feat_key, corrs=corrs, masks=masks
         )
         print(f"fused_corr: {fused_corr.shape}") if verbose else None
-        del corrs, masks, concat_feat_key
+        del corrs, masks, add_feat_key
         all_enc_fused, enc_fused = self.fusion_enc_block(fused_corr=fused_corr)
         del fused_corr
         print(f"enc_fused: {enc_fused.shape}") if verbose else None
@@ -267,7 +268,9 @@ class MVSNet_DINO(nn.Module):
 
 
 @register_model
-def mvsnet_dino(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
+def mvsnet_dino_faster_add(
+    pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
+):
     assert not (
         pretrained and weights is None
     ), "Pretrained weights are not available for this model."
