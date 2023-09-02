@@ -57,11 +57,11 @@ class FeaturePyramidNet(nn.Module):
     output 3 levels of features using a FPN structure
     """
 
-    def __init__(self):
+    def __init__(self, feat_dim="half"):
         super(FeaturePyramidNet, self).__init__()
 
         self.conv0 = nn.Sequential(
-            Conv2d(3, 8, 3, 1, 1),
+            Conv2d(3, 8, 3, 2 if feat_dim == "half" else 1, 1),
             Conv2d(8, 8, 3, 1, 1),
         )
 
