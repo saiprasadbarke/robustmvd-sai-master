@@ -78,19 +78,6 @@ class MultiScaleMAE(nn.Module):
         gt_mask = gt > 0
 
         preds_all = aux[f"{self.modality}s_all"]
-        if self.weight_by_sampling_interval:
-            sampling_invdepths = aux["sampling_invdepths"]
-            steps = sampling_invdepths.shape[1]
-            max_depth = (
-                1.0 / sampling_invdepths[:, 0:1, ...]
-            )  # shape [N, 1, H, W] or [N, 1, 1, 1]
-            min_depth = (
-                1.0 / sampling_invdepths[:, -1:, ...]
-            )  # shape [N, 1, H, W] or [N, 1, 1, 1]
-            interval = (max_depth - min_depth) / (steps - 1)
-            loss_weight = 1 / interval
-        else:
-            loss_weight = 1
         total_mnll_loss = 0
         total_reg_loss = 0
 
@@ -108,13 +95,13 @@ class MultiScaleMAE(nn.Module):
                 gt=gt_resampled,
                 pred=pred,
                 mask=gt_mask_resampled,
-                weight=self.loss_weights[level] * loss_weight,
+                weight=self.loss_weights[level],
             )
             pointwise_loss = pointwise_ae(
                 gt=gt_resampled,
                 pred=pred,
                 mask=gt_mask_resampled,
-                weight=self.loss_weights[level] * loss_weight,
+                weight=self.loss_weights[level],
             )
 
             sub_losses["02_mnll/level_%d" % level] = loss
@@ -153,7 +140,6 @@ def cas_mvsnet_loss(**kwargs):
         weight_decay=0.0,
         gt_interpolation="nearest",
         modality="depth",
-        weight_by_sampling_interval=True,
         loss_weights=[0.5, 1, 2],
         **kwargs,
     )
