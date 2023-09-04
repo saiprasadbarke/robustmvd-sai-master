@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class LearnedFusion(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels=256):
         super().__init__()
 
         self.view_weights = []
@@ -11,9 +11,18 @@ class LearnedFusion(nn.Module):
         self.fused_mask = None
 
         self.corr_to_view_weight = nn.Sequential(
-            nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(
+                in_channels,
+                int(in_channels / 2),
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=True,
+            ),
             nn.ReLU(inplace=True),
-            nn.Conv2d(128, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Conv2d(
+                int(in_channels / 2), 1, kernel_size=1, stride=1, padding=0, bias=True
+            ),
         )
 
     def reset(self):
