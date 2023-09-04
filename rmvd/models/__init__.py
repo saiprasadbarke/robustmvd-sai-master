@@ -3,6 +3,7 @@ from .robust_mvd import robust_mvd, robust_mvd_5M
 from .robust_mvd_mvsnet_encoder import robust_mvd_mvsnet_encoder
 from .robustmvd_groupwisecorr import robustmvd_groupwisecorr
 from .robust_mvd_averagefusion import robust_mvd_averagefusion
+from .robustmvd_multicorrcorr_3dreg import robustmvd_multicorrcorr_3dreg
 
 # MVSNET variants
 from .mvsnet import mvsnet_blendedmvs
@@ -22,7 +23,11 @@ from .mvsnet_dino import mvsnet_dino
 from .mvsnet_dino_faster_concat import mvsnet_dino_faster_concat
 from .mvsnet_dino_faster_add import mvsnet_dino_faster_add
 from .mvsnet_wo_depth import mvsnet_blendedmvs_wo_depth
+from .mvsnet_fpn import mvsnet_fpn
+from .mvsnet_stackedhourglass_reg import mvsnet_stackedhourglass
+from .mvsnet_unet import mvsnet_unet
 
+# others
 from .dpt import dpt_large_kitti
 from .supervised_monodepth2 import supervised_monodepth2
 from .wrappers.monodepth2 import (
