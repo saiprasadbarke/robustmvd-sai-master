@@ -39,7 +39,7 @@ class MVSNet(nn.Module):
         self.num_sampling_points = num_sampling_points
         self.sampling_type = sampling_type
         self.encoder = DispnetEncoder()
-        self.corr_block = PlanesweepCorrelation(normalize=False, warp_only=True)
+        self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
         self.fusion_block = VarianceCostvolumeFusion()
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
             in_channels=256, base_channels=64, batch_norm=True
