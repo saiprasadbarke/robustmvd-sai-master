@@ -38,7 +38,7 @@ class MVSNetDispnetDecoder(nn.Module):
         self.num_sampling_points = num_sampling_points
         self.sampling_type = sampling_type
         self.encoder = MVSNetEncoder(base_channels=base_channels)
-        self.corr_block = PlanesweepCorrelation(normalize=False, warp_only=True)
+        self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
         self.fusion_block = VarianceCostvolumeFusion()
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
             in_channels=32, base_channels=8, batch_norm=True

@@ -36,7 +36,7 @@ class MVSNet_FPN(nn.Module):
         base_channels = 8
         self.num_sampling_points = num_sampling_points
         self.sampling_type = sampling_type
-        self.encoder = FeaturePyramidNet()
+        self.encoder = FeaturePyramidNet(feat_dim="half")
         self.corr_block = PlanesweepCorrelation(normalize=False, corr_type="warponly")
         self.fusion_block = VarianceCostvolumeFusion()
         self.fusion_enc_block = MVSNetFusedCostvolumeEncoder(
