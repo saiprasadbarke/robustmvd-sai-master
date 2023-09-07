@@ -38,10 +38,10 @@ class MVSnetGroupWiseCorrLearnedFusion(nn.Module):
     def __init__(self):
         super().__init__()
         self.num_sampling_points = 128
-        self.num_groups = 4
+        self.num_groups = 32
         self.feat_encoder = FeatEncoder()
         self.corr_block_groupwise = CorrBlock(
-            corr_type="groupwise_5D", normalize=True, num_groups=self.num_groups
+            corr_type="groupwise_5D", normalize=False, num_groups=self.num_groups
         )
 
         self.fusion_block = CostvolumeFusion(in_channels=self.num_groups)
