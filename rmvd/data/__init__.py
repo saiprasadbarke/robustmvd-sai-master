@@ -27,6 +27,7 @@ from .tanks_and_temples import TanksAndTemplesTrainRobustMVD
 from .flyingthings3d import FlyingThings3DSeq4Train
 from .staticthings3d import StaticThings3DSeq4Train
 from .blendedmvs import BlendedMVSSeq4TrainSmall
+from .dtu_train import DTUMvsnetTrain, DTURobust_MVD
 
 # import all augmentations; this triggers the registration of the augmentations in the registry
 from .augmentations import (

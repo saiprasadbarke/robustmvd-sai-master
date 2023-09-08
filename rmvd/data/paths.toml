@@ -7,6 +7,9 @@
 [dtu]
     root = '/work/dlclarge1/barkes-barke-master/data/dtu_og/'
 
+[dtu_train_1]
+    root = '/work/dlclarge1/barkes-barke-master/data/dtu_train_1/'
+
 [scannet]
     root = '/work/dlclarge1/barkes-barke-master/data/scannet/'
 
