@@ -26,6 +26,8 @@ from .mvsnet_wo_depth import mvsnet_blendedmvs_wo_depth
 from .mvsnet_fpn import mvsnet_fpn
 from .mvsnet_stackedhourglass_reg import mvsnet_stackedhourglass
 from .mvsnet_unet import mvsnet_unet
+from .mvsnet_cascade_unet import mvsnet_cascade_unet
+from .mvsnet_sai import mvsnet_train
 
 # others
 from .dpt import dpt_large_kitti

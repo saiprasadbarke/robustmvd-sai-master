@@ -30,7 +30,7 @@ verbose = False
 
 
 class MVSNet(nn.Module):
-    def __init__(self, num_sampling_points=128, sampling_type="linear_depth"):
+    def __init__(self, num_sampling_points=128, sampling_type="linear_invdepth"):
         super().__init__()
 
         base_channels = 8
@@ -158,7 +158,9 @@ class MVSNet(nn.Module):
 
 
 @register_model
-def mvsnet_blendedmvs_wo_depth(pretrained=True, weights=None, train=False, num_gpus=1, **kwargs):
+def mvsnet_blendedmvs_wo_depth(
+    pretrained=True, weights=None, train=False, num_gpus=1, **kwargs
+):
     assert not (
         pretrained and weights is None
     ), "Pretrained weights are not available for this model."
