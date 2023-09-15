@@ -64,7 +64,7 @@ class MVSNet(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, images, poses, intrinsics, keyview_idx, depth_range=None, **_):
+    def forward(self, images, poses, intrinsics, keyview_idx, **_):
         image_key = select_by_index(images, keyview_idx)
         images_source = exclude_index(images, keyview_idx)
 
@@ -72,15 +72,6 @@ class MVSNet(nn.Module):
         intrinsics_source = exclude_index(intrinsics, keyview_idx)
 
         source_to_key_transforms = exclude_index(poses, keyview_idx)
-
-        if depth_range is None:
-            device = get_torch_model_device(self)
-            N = images[0].shape[0]
-            min_depth = torch.tensor([0.2] * N, dtype=torch.float32, device=device)
-            max_depth = torch.tensor([1000.0] * N, dtype=torch.float32, device=device)
-            depth_range = [min_depth, max_depth]
-        else:
-            min_depth, max_depth = depth_range
 
         print(f"images_key: {image_key.shape}") if verbose else None
         all_enc_key, enc_key = self.encoder(image_key)
@@ -99,8 +90,8 @@ class MVSNet(nn.Module):
             intrinsics_sources=intrinsics_source,
             num_sampling_points=self.num_sampling_points,
             sampling_type=self.sampling_type,
-            min_depth=min_depth,
-            max_depth=max_depth,
+            min_depth=0.2,
+            max_depth=1000.0,
         )
 
         fused_corr, _ = self.fusion_block(feat_key=enc_key, corrs=corrs, masks=masks)
@@ -125,7 +116,7 @@ class MVSNet(nn.Module):
 
         return pred, aux
 
-    def input_adapter(self, images, keyview_idx, poses, intrinsics, depth_range=None):
+    def input_adapter(self, images, keyview_idx, poses, intrinsics):
         device = get_torch_model_device(self)
 
         resized = UpscaleInputsToNextMultipleOf(32)(
@@ -139,8 +130,8 @@ class MVSNet(nn.Module):
         images = resized["images"]
         intrinsics = resized["intrinsics"]
 
-        images, keyview_idx, poses, intrinsics, depth_range = to_torch(
-            (images, keyview_idx, poses, intrinsics, depth_range), device=device
+        images, keyview_idx, poses, intrinsics = to_torch(
+            (images, keyview_idx, poses, intrinsics), device=device
         )
 
         sample = {
@@ -148,7 +139,6 @@ class MVSNet(nn.Module):
             "keyview_idx": keyview_idx,
             "poses": poses,
             "intrinsics": intrinsics,
-            "depth_range": depth_range,
         }
         return sample
 
